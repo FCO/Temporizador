@@ -9,7 +9,7 @@ use warnings;
 sub new {
    my $class   = shift;
    my $connect = shift;
-   my $schema  = temporizador::Schema->connection($connect);
+   my $schema  = temporizador::Schema->connection($connect, @_);
    my $hash = {
                rs_dir   => $schema->resultset('Dir')      ,
                rs_arq   => $schema->resultset('Arq')      ,
@@ -280,6 +280,43 @@ sub tempo_projeto_dia {
                  )->single;
    $tempo->get_column("tempo_total");
                 
+}
+
+sub tempo_projetos_por_dia {
+   my $self      = shift;
+   my $empregado = shift;
+
+   my $empre_obj;
+   if(not defined $empregado) {
+      $empre_obj = $self->get_empregado;
+   } else {
+      if($empregado =~ /^\d+$/){
+         $empre_obj = $self->{rs_empre}->find($empregado);
+      }elsif($empregado =~ /\@/){
+         $empre_obj = $self->{rs_empre}->find({email => $empregado});
+      }elsif($empregado =~ /^\d{3}\.\d{3}\.\d{3}-\d{2}$/){
+         $empre_obj = $self->{rs_empre}->find({cpf => $empregado});
+      }else {
+         $empre_obj = $self->{rs_empre}->find({nome => $empregado});
+      }
+   }
+   my $tempo = $empre_obj->search_related("logins",
+                  undef,
+                  {
+                  "select" => [
+                               "extract( epoch from interval '0 sec' + date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))) / (60 * 60)",
+                               "projeto", "date_trunc('day', data) as dia"
+                              ],
+                  as       => [qw/tempo_total projeto dia/],
+                  group_by =>[qw/projeto dia/],
+                  }
+                 );
+   #($tempo->get_column("projeto")->all, $tempo->get_column("data")->all, $tempo->get_column("tempo_total")->all);
+   #my %a;
+   #@a{$tempo->get_column("data")->all} = {}
+   #1
+   #$tempo->get_column("tempo_total")#, $tempo->get_column("projeto"),$tempo->get_column("dia");
+   $tempo
 }
 
 sub tempo_empregado_mes {
