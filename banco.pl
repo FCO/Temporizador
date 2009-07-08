@@ -67,6 +67,16 @@ sub cria {
     }
 }
 
+sub apaga {
+    my $c = shift;
+    
+    if($c->stash->{DB}->resultset($c->stash->{resultset})->find($c->options)->delete){
+        return "OK";
+    }else{
+        return "Não apagado"
+    }
+}
+
 
 
 

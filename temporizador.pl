@@ -127,7 +127,7 @@ sub loginout {
 
 sub logout {
    our (@criados, @modificados);
-   File::Find::finddepth(\&subrotina, $temp->get_caminhos);
+   File::Find::finddepth(\&subrotina, $temp->get_caminhos) if $temp->get_caminhos;
    my $ult_proj = $temp->get_projeto->nome;
    my $tempo_hj = $temp->tempo_empregado_dia;
    my $tempo = $temp->logout;
