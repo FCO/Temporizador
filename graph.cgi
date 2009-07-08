@@ -21,26 +21,13 @@ for my $linha ($linhas->all){
    my $dia = (split /\s+/,$linha->get_column("dia"))[0];
    $dias{$dia}->{$linha->get_column("projeto")} = $linha->get_column("tempo_total");
    $projetos{$linha->get_column("projeto")}++;
-   
-   #$dmin ||= $dia;
-   #$dmax ||= $dia;
-   #$dmin = $dmin le $dia ? $dmin : $dia;
-   #$dmax = $dmax ge $dia ? $dmax : $dia;
-   #push @{ $proj{$linha->get_column("projeto")}->{tempo} }, $linha->get_column("tempo_total");
-   #push @{ $proj{$linha->get_column("projeto")}->{dia} }, (split /\s+/,$linha->get_column("dia"))[0];
 }
 my $mesIni;
-$mesIni = DateTime->new(day => 1, month => param("mes"), year => DateTime->today->year) if param("mes");
-$mesIni ||= DateTime->today->truncate( to => "month");
-print "-- $mesIni --$/";
+my $year  = param("ano") || DateTime->today->year;
+my $month = param("mes") || DateTime->today->month;
+$mesIni = DateTime->new(day => 1, month => $month, year => $year);
 my $mesFim = DateTime->last_day_of_month(month => $mesIni->month, year => $mesIni->year);
 $mesFim = $mesFim > DateTime->today ? DateTime->today : $mesFim;
-print "($mesIni) ($mesFim)$/";
-#$dmin =~ /^(\d{4})-(\d{2})-(\d{2})$/;
-#my $min = DateTime->new(year => $1, month => $2, day => $3);
-#$dmax =~ /^(\d{4})-(\d{2})-(\d{2})$/;
-#my $max = DateTime->new(year => $1, month => $2, day => $3);
-#my $novadata = $min;
 my @datetimedays;
 my $novadata = $mesIni;
 
@@ -48,7 +35,6 @@ while($novadata <= $mesFim){
     push @datetimedays, $novadata if $novadata->month == $mesIni->month and $novadata->year == $mesIni->year;
     $novadata = $novadata->clone->add(days => 1);
 }
-    #push @datetimedays, $max;
 
 @projetos = sort keys %projetos;
 my @dia;
