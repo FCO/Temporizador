@@ -14,6 +14,10 @@ sub pre_process {
     $c->stash->{resultset} = ucfirst $resultset;
 }
 
+sub default {
+   shift()->execute("lista");
+}
+
 sub lista {
     my $c = shift;
     my %opt = %{ $c->options };
