@@ -250,6 +250,38 @@ sub tempo_empregado_dia {
                 
 }
 
+sub tempo_projeto_dia {
+   my $self      = shift;
+   my $empregado = shift;
+
+   my $empre_obj;
+   if(not defined $empregado) {
+      $empre_obj = $self->get_empregado;
+   } else {
+      if($empregado =~ /^\d+$/){
+         $empre_obj = $self->{rs_empre}->find($empregado);
+      }elsif($empregado =~ /\@/){
+         $empre_obj = $self->{rs_empre}->find({email => $empregado});
+      }elsif($empregado =~ /^\d{3}\.\d{3}\.\d{3}-\d{2}$/){
+         $empre_obj = $self->{rs_empre}->find({cpf => $empregado});
+      }else {
+         $empre_obj = $self->{rs_empre}->find({nome => $empregado});
+      }
+   }
+   my $tempo = $empre_obj->search_related("logins",
+                  data => {'>=' => "today()"},
+                  projeto => $self->get_projeto->id,
+                  {
+                  "select" => [
+                               "date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))"
+                              ],
+                  as       => [qw/tempo_total/],
+                  }
+                 )->single;
+   $tempo->get_column("tempo_total");
+                
+}
+
 sub tempo_empregado_mes {
    my $self      = shift;
    my $empregado = shift;

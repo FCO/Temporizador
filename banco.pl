@@ -9,9 +9,10 @@ App::Rad->run;
 sub pre_process {
     my $c = shift;
 
-    $c->stash->{DB} = 'temporizador::Schema'->connect('dbi:Pg:dbname=temporizador');
     (my $resultset = $0) =~ s{^.*/|\.pl$}{}g;
-    $c->stash->{resultset} = ucfirst $resultset;
+    $resultset = ucfirst $resultset;
+    $c->stash->{Schema} = 'temporizador::Schema'->connect('dbi:Pg:dbname=temporizador');
+    $c->stash->{DB}     = $c->stash->{Schema}->resultset($resultset);
 }
 
 sub default {
@@ -26,7 +27,7 @@ sub lista {
         @colunas = grep {my $col = $_; grep {$_ eq $col} keys %opt} @colunas;
     }
     my @ret;
-    for my $linha ($c->stash->{DB}->resultset($c->stash->{resultset})->all){
+    for my $linha ($c->stash->{DB}->all){
         my @val;
         for my $col (@colunas){
             my $valor = $linha->$col;
@@ -54,13 +55,34 @@ sub colunas {
 
 sub _colunas {
     my $c = shift;
-    $c->stash->{DB}->resultset($c->stash->{resultset})->result_source->columns;
+    $c->stash->{DB}->result_source->columns;
 }
 
 sub cria {
     my $c = shift;
+
+    my @relation = $c->stash->{DB}->result_source->relationships;
+
+    if(@relation){
+        for my $rel(@relation){
+           my $int = 1 if $c->options->{$rel} =~ /^\d+$/;
+           if(exists $c->options->{$rel}){
+               my $rs    = $c->stash->{DB}->result_source->relationship_info($rel)->{source};
+               my $relrs = $c->stash->{Schema}->resultset($rs);
+               my @cols  = $relrs->result_source->columns;
+               for my $col (@cols){
+                   if($relrs->result_source->column_info($col)->{data_type} eq "integer"){
+                       next unless $int
+                   }
+                   if(my $obj = $relrs->find({ $col => $c->options->{$rel} })){
+                       $c->options->{$rel} = $obj;
+                   }
+               }
+           }
+        }
+    }
     
-    if($c->stash->{DB}->resultset($c->stash->{resultset})->create($c->options)){
+    if($c->stash->{DB}->create($c->options)){
         return "OK";
     }else{
         return "Não criado"
@@ -70,7 +92,7 @@ sub cria {
 sub apaga {
     my $c = shift;
     
-    if($c->stash->{DB}->resultset($c->stash->{resultset})->find($c->options)->delete){
+    if($c->stash->{DB}->find($c->options)->delete){
         return "OK";
     }else{
         return "Não apagado"

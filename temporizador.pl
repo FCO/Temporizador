@@ -127,14 +127,16 @@ sub loginout {
 
 sub logout {
    our (@criados, @modificados);
-   File::Find::finddepth(\&subrotina, $temp->get_caminhos) if $temp->get_caminhos;
+   File::Find::finddepth(\&subrotina, $temp->get_caminhos);
    my $ult_proj = $temp->get_projeto->nome;
    my $tempo_hj = $temp->tempo_empregado_dia;
+   my $tempophj = $temp->tempo_projeto_dia;
    my $tempo = $temp->logout;
    my $return;
    $return .= "$ult_proj deslogado:$/$/";
    $return .= "TEMPO: $tempo$/";
-   $return .= "Tempo hoje: $tempo_hj"; #, $/;
+   $return .= "Tempo hoje $ult_proj: $tempophj", $/;
+   $return .= "Tempo hoje total: $tempo_hj", $/;
    #$return .= "Criados:$/" . (join $/, @criados) . $/ if @criados;
    #$return .= "Modificados:$/" . (join $/, @modificados) . $/ if @modificados;
 
