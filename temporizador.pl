@@ -29,6 +29,7 @@ $event->add($images{ $temp->is_logged_in ? "on" : "off"});
 our $EVENT = $event;
 $icon->add($event);
 $icon->show_all;
+$event->set_tooltip_text($temp->get_projeto->nome);
 
 $event->signal_connect('button_release_event', \&click);
 
@@ -92,12 +93,13 @@ sub muda_projeto {
    my $event = shift;
    my $proj  = shift;
    #$event->remove($images{ $temp->is_logged_in ? "off" : "on"});
-   $event->remove($images{"off"});
-   $event->remove($images{"on"});
+   eval {$event->remove($images{"off"})};
+   eval {$event->remove($images{"on"})};
    my $old_proj = $temp->get_projeto->nome;
    my $retorno = logout() if $temp->is_logged_in;
    $retorno .= $/ x 2;
    $temp->set_projeto(id => $proj);
+   $event->set_tooltip_text($temp->get_projeto->nome);
    $retorno .= "Projeto atual: " . $temp->get_projeto->nome;
    Gtk2::Notify->new($temp->get_projeto->nome, $retorno, 25, $event)->show;
    $event->add($images{ $temp->is_logged_in ? "on" : "off"});
@@ -117,6 +119,8 @@ sub loginout {
       $retorno = "Hora Atual: " . $temp->login;
       our $timer = Glib::Timeout->add(1000 * 60 * 30, \&timer);
    }
+
+   $event->set_tooltip_text($temp->get_projeto->nome);
 
    Gtk2::Notify->new($temp->get_projeto->nome, $retorno, 25, $event)->show;
 
