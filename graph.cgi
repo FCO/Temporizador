@@ -7,12 +7,11 @@ use temporizador;
 use DateTime;
 use strict;
 use warnings;
-use diagnostics;
 
 my $temp   = temporizador->new("dbi:Pg:dbname=temporizador", "fernando");
 $temp->set_empregado(email => param("user"));
 
-my $linhas = $temp->tempo_projetos_por_dia;
+my $linhas = $temp->tempo_projetos_por_dia();
 my %proj;
 my %dias;
 my @projetos;
@@ -23,25 +22,33 @@ for my $linha ($linhas->all){
    $dias{$dia}->{$linha->get_column("projeto")} = $linha->get_column("tempo_total");
    $projetos{$linha->get_column("projeto")}++;
    
-   $dmin ||= $dia;
-   $dmax ||= $dia;
-   $dmin = $dmin le $dia ? $dmin : $dia;
-   $dmax = $dmax ge $dia ? $dmax : $dia;
+   #$dmin ||= $dia;
+   #$dmax ||= $dia;
+   #$dmin = $dmin le $dia ? $dmin : $dia;
+   #$dmax = $dmax ge $dia ? $dmax : $dia;
    #push @{ $proj{$linha->get_column("projeto")}->{tempo} }, $linha->get_column("tempo_total");
    #push @{ $proj{$linha->get_column("projeto")}->{dia} }, (split /\s+/,$linha->get_column("dia"))[0];
 }
-$dmin =~ /^(\d{4})-(\d{2})-(\d{2})$/;
-my $min = DateTime->new(year => $1, month => $2, day => $3);
-$dmax =~ /^(\d{4})-(\d{2})-(\d{2})$/;
-my $max = DateTime->new(year => $1, month => $2, day => $3);
+my $mesIni;
+$mesIni = DateTime->new(day => 1, month => param("mes"), year => DateTime->today->year) if param("mes");
+$mesIni ||= DateTime->today->truncate( to => "month");
+print "-- $mesIni --$/";
+my $mesFim = DateTime->last_day_of_month(month => $mesIni->month, year => $mesIni->year);
+$mesFim = $mesFim > DateTime->today ? DateTime->today : $mesFim;
+print "($mesIni) ($mesFim)$/";
+#$dmin =~ /^(\d{4})-(\d{2})-(\d{2})$/;
+#my $min = DateTime->new(year => $1, month => $2, day => $3);
+#$dmax =~ /^(\d{4})-(\d{2})-(\d{2})$/;
+#my $max = DateTime->new(year => $1, month => $2, day => $3);
+#my $novadata = $min;
 my @datetimedays;
-my $novadata = $min;
+my $novadata = $mesIni;
 
-while($novadata < $max){
-    push @datetimedays, $novadata if $novadata->month == $max->month and $novadata->year == $max->year;
+while($novadata <= $mesFim){
+    push @datetimedays, $novadata if $novadata->month == $mesIni->month and $novadata->year == $mesIni->year;
     $novadata = $novadata->clone->add(days => 1);
 }
-    push @datetimedays, $max;
+    #push @datetimedays, $max;
 
 @projetos = sort keys %projetos;
 my @dia;
@@ -60,7 +67,7 @@ if(param("type")){
    $mod .= "lines";
 }
 eval "require $mod";
-my $graph = new $mod( 600, 400 );
+my $graph = new $mod( 1000, 400 );
 $graph->set( 
         x_label           => 'Dia',
         y_label           => 'Horas por projeto (h)',
