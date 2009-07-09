@@ -10,10 +10,24 @@ use temporizador::Schema;
 #use Digest::MD5;
 use warnings;
 
-my $email = shift;
-#my $email = 'fernandocorrea@gmail.com';
+die "o Temporizador precisa ser configurado antes de ser utilizado (config.pl)$/"
+    unless -f "temporizador.conf";
 
-our $temp = temporizador->new("dbi:Pg:dbname=temporizador");
+my %conf;
+open $CONF, "<", "temporizador.conf";
+if(defined $CONF){
+    while(my $linha = <$CONF>){
+        $linha =~ /^\s*(\w+)\s*:\s*(.*)\s*$/;
+        $conf{$1} = $2;
+    }
+}
+close $CONF;
+
+
+my $email = shift;
+$email ||= $conf{user};
+
+our $temp = temporizador->new("dbi:$conf{banco}:dbname=$conf{dbname}", $conf{dbuser}, $conf{dbpass});
 $temp->set_empregado(email => $email);
 $temp->set_projeto;
 
@@ -21,7 +35,7 @@ Gtk2->init;
 
 my $icon= Gtk2::TrayIcon->new("test");
 my $event = Gtk2::EventBox->new;
-my $base = "/home/fernando/temporizador";
+my $base = $conf{root};
 my $on  = Gtk2::Image->new_from_pixbuf(Gtk2::Gdk::Pixbuf->new_from_file("$base/on.jpeg"));
 my $off = Gtk2::Image->new_from_pixbuf(Gtk2::Gdk::Pixbuf->new_from_file("$base/off.jpeg"));
 our %images = (on => $on, off => $off);
