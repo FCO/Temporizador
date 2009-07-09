@@ -7,6 +7,7 @@ App::Rad->run;
 sub post_process {
     my $c = shift;
     my %conf;
+    return $c->post_process unless $c->cmd =~ /^[sg]et_/;
     open $CONF, "<", "temporizador.conf";
     if(defined $CONF){
         while(my $linha = <$CONF>){
