@@ -5,6 +5,8 @@ use temporizador::Schema;
 use File::Find;
 use Digest::MD5;
 use warnings;
+use DateTime;
+use DateTime::Duration;
 
 sub new {
    my $class   = shift;
@@ -207,16 +209,24 @@ sub tempo_total_projeto {
       }
    }
 
-   my $tempo = $proj_obj->search_related("logins",
-                   undef,
-                   {
-                   "select" => [
-                                "date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))"
-                               ],
-                   as       => [qw/tempo_total/],
-                   }
-                  )->single;
-   $tempo->get_column("tempo_total");
+   my $tempo = $proj_obj->search_related("logins");
+   my $tempo_total = DateTime::Duration->new;
+   for my $log (map{$_->tempo}$tempo->all){
+         $tempo_total += $log;
+   }
+   ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
+   $s %= 60;
+   "$h:$m:$s"
+   #my $tempo = $proj_obj->search_related("logins",
+   #                undef,
+   #                {
+   #                "select" => [
+   #                             "date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))"
+   #                            ],
+   #                as       => [qw/tempo_total/],
+   #                }
+   #               )->single;
+   #$tempo->get_column("tempo_total");
 }
 
 sub tempo_empregado_dia {
@@ -237,21 +247,28 @@ sub tempo_empregado_dia {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins",
-                  data => {'>=' => "today()"},
-                  {
-                  "select" => [
-                               "date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))"
-                              ],
-                  as       => [qw/tempo_total/],
-                  }
-                 )->single;
-   $tempo->get_column("tempo_total");
+   my $tempo = $empre_obj->search_related("logins", {data => {'>=' => DateTime->today}});
+   my $tempo_total = DateTime::Duration->new;
+   for my $log (map{$_->tempo}$tempo->all){
+         $tempo_total += $log;
+   }
+   ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
+   $s %= 60;
+   "$h:$m:$s"
+   #               {
+   #               "select" => [
+   #                            "date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))"
+   #                           ],
+   #               as       => [qw/tempo_total/],
+   #               }
+   #              )->single;
+   #$tempo->get_column("tempo_total");
                 
 }
 
 sub tempo_projeto_dia {
    my $self      = shift;
+   my $projeto   = shift;
    my $empregado = shift;
 
    my $empre_obj;
@@ -268,17 +285,26 @@ sub tempo_projeto_dia {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins",
-                  data => {'>=' => "today()"},
-                  projeto => $self->get_projeto->id,
-                  {
-                  "select" => [
-                               "date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))"
-                              ],
-                  as       => [qw/tempo_total/],
-                  }
-                 )->single;
-   $tempo->get_column("tempo_total");
+   my $tempo = $empre_obj->search_related("logins", {
+                                                     data    => {'>=' => DateTime->today},
+                                                     projeto => $projeto || $self->get_projeto->id
+                                                    }
+   );
+   my $tempo_total = DateTime::Duration->new;
+   for my $log (map{$_->tempo}$tempo->all){
+         $tempo_total += $log;
+   }
+   ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
+   $s %= 60;
+   "$h:$m:$s"
+   #               {
+   #               "select" => [
+   #                            "date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))"
+   #                           ],
+   #               as       => [qw/tempo_total/],
+   #               }
+   #              )->single;
+   #$tempo->get_column("tempo_total");
                 
 }
 
