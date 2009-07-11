@@ -36,6 +36,14 @@ unless(exists $conf{banco}){
    $conf{banco} = "SQLite";
    $mudou++;
 }
+unless(exists $conf{icone_on}){
+   $conf{icone_on} = "on.png";
+   $mudou++;
+}
+unless(exists $conf{icone_off}){
+   $conf{icone_off} = "off.png";
+   $mudou++;
+}
 our $temp = temporizador->new("dbi:$conf{banco}:dbname=$conf{dbname}" .
                               (
                                $conf{dbhost}
@@ -72,8 +80,8 @@ Gtk2->init;
 my $icon= Gtk2::TrayIcon->new("test");
 my $event = Gtk2::EventBox->new;
 my $base = $conf{root};
-my $on  = Gtk2::Image->new_from_pixbuf(Gtk2::Gdk::Pixbuf->new_from_file("$base/on.png"));
-my $off = Gtk2::Image->new_from_pixbuf(Gtk2::Gdk::Pixbuf->new_from_file("$base/off.png"));
+my $on  = Gtk2::Image->new_from_pixbuf(Gtk2::Gdk::Pixbuf->new_from_file("$base/$conf{icone_on}"));
+my $off = Gtk2::Image->new_from_pixbuf(Gtk2::Gdk::Pixbuf->new_from_file("$base/$conf{icone_off}"));
 our %images = (on => $on, off => $off);
 $event->add($images{ $temp->is_logged_in ? "on" : "off"});
 our $EVENT = $event;
