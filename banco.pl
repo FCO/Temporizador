@@ -2,6 +2,7 @@
 
 use lib "lib";
 use temporizador::Schema;
+use DateTime;
 
 use App::Rad;
 App::Rad->run;
@@ -82,6 +83,12 @@ sub cria {
                    }
                }
            }
+        }
+    }
+    my @cols  = $c->stash->{DB}->result_source->columns;
+    for my $col (@cols){
+        if($col eq "data" or $col eq "inicio"){
+            $c->options->{$col} = DateTime->now;
         }
     }
     
