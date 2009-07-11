@@ -8,6 +8,7 @@ use temporizador;
 use temporizador::Schema;
 #use File::Find;
 #use Digest::MD5;
+use strict;
 use warnings;
 
 # die "o Temporizador precisa ser configurado antes de ser utilizado (config.pl)$/"
@@ -163,6 +164,7 @@ sub loginout {
    my $event  = shift;
    #my $evento = shift;
    #my $image  = shift;
+   our $timer;
 
    my $retorno;
    if($temp->is_logged_in){
@@ -170,7 +172,7 @@ sub loginout {
       Glib::Source->remove($timer) if defined $timer;
    }else{
       $retorno = "Hora Atual: " . $temp->login;
-      our $timer = Glib::Timeout->add(1000 * 60 * 30, \&timer);
+      $timer = Glib::Timeout->add(1000 * 60 * 30, \&timer);
    }
 
    $event->set_tooltip_text($temp->get_projeto->nome);
@@ -203,6 +205,7 @@ sub logout {
 sub subrotina {
    my $dir = $File::Find::dir;
    my $arq = $_;
+   my(@criados, @modificados);
    if(-d $File::Find::name) {
       my $mod_cri = $temp->update_dir($dir);
       push @criados    , $dir if defined $mod_cri && $mod_cri eq "criado";
