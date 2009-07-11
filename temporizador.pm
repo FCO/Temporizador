@@ -344,11 +344,16 @@ sub tempo_projetos_por_dia {
    my $tempo = $empre_obj->search_related("logins", {data => {'>=' => $prim->ymd, '<=' => $ulti->ymd}});
    my %dias;
    for my $linha($tempo->all){
-print $linha->tempof, $/;
-      unless(exists $dias{$linha->data->day}->{$linha->projeto->id}){
-         $dias{$linha->data->day}->{$linha->projeto->id} = DateTime::Duration->new;
+      unless(exists $dias{$linha->data->day}->{$linha->projeto->id}->{inicio}){
+         $dias{$linha->data->day}->{$linha->projeto->id}->{inicio} = $linha->projeto->inicio;
       }
-      $dias{$linha->data->day}->{$linha->projeto->id} += $linha->tempo->clone;
+      unless(exists $dias{$linha->data->day}->{$linha->projeto->id}->{fim}){
+         $dias{$linha->data->day}->{$linha->projeto->id}->{fim} = $linha->projeto->fim;
+      }
+      unless(exists $dias{$linha->data->day}->{$linha->projeto->id}->{tempo}){
+         $dias{$linha->data->day}->{$linha->projeto->id}->{tempo} = DateTime::Duration->new;
+      }
+      $dias{$linha->data->day}->{$linha->projeto->id}->{tempo} += $linha->tempo->clone;
    }
    \%dias
 }

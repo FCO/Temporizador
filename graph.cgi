@@ -43,10 +43,15 @@ my @proj;
 for my $dia (@datetimedays){
    push @dia, $dia->day;
    for my $proj (0 .. $#projetos){
-      push @{ $proj[$proj] }, exists $dias{$dia->day}->{$projetos[$proj]}
-                               ?$dias{$dia->day}->{$projetos[$proj]}->hours
-                               :0
-      ;
+      if($dia >= $dias{$dia->day}->{$projetos[$proj]}->{inicio}
+         and $dia <= $dias{$dia->day}->{$projetos[$proj]}->{fim}) {
+         push @{ $proj[$proj] }, exists $dias{$dia->day}->{$projetos[$proj]}->{tempo}
+                                  ?$dias{$dia->day}->{$projetos[$proj]}->{tempo}->hours
+                                  :0
+         ;
+      } else {
+         push @{ $proj[$proj] }, undef;
+      }
    }
 }
 my @data = (\@dia, @proj);
@@ -60,7 +65,7 @@ if(param("type")){
 eval "require $mod";
 my $graph = new $mod( 1000, 400 );
 $graph->set( 
-        x_label => 'Dia',
+        x_label => "Dia do mes $month",
         y_label => 'Horas por projeto (h)',
         title   => 'Dias de trabalho de ' . $temp->get_empregado->nome,
 );

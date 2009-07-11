@@ -88,7 +88,7 @@ sub cria {
     my @cols  = $c->stash->{DB}->result_source->columns;
     for my $col (@cols){
         if($col eq "data" or $col eq "inicio"){
-            $c->options->{$col} = DateTime->now;
+            $c->options->{$col} = DateTime->now->set_time_zone("America/Sao_Paulo");
         }
     }
     

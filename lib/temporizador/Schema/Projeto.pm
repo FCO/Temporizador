@@ -5,7 +5,7 @@ use warnings;
 
 use base 'DBIx::Class';
 
-__PACKAGE__->load_components("Core");
+__PACKAGE__->load_components("InflateColumn::DateTime", "Core");
 __PACKAGE__->table("projeto");
 __PACKAGE__->add_columns(
   "id",
@@ -22,6 +22,21 @@ __PACKAGE__->add_columns(
     is_nullable => 0,
     size => undef,
   },
+  "inicio",
+  {
+    data_type => "datetime",
+    default_value => 'now()',
+    is_nullable => 0,
+    size => 8,
+  },
+  "fim",
+  {
+    data_type => "datetime",
+    default_value => undef,
+    is_nullable => 1,
+    size => 8,
+  },
+
 );
 __PACKAGE__->set_primary_key("id");
 __PACKAGE__->add_unique_constraint("projeto_nome_key", ["nome"]);
