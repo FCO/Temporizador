@@ -48,21 +48,21 @@ while($novadata <= $mesFim){
 
 my %dias = %{ $temp->tempo_projetos_por_dia(mes => $month, year => $year) };
 
-my %projetos;
-for my $dia (sort {$a <=> $b} keys %dias){
-   @projetos{ keys %{ $dias{$dia} } }++
-}
-
-my @projetos = sort keys %projetos;
+my @projnome = map {$_->nome} sort {$a->id <=> $b->id} $temp->{rs_proj}->all;
+my @projetos = sort {$a <=> $b} map {$_->id} $temp->{rs_proj}->all;
 my @dia;
 my @proj;
 for my $dia (@datetimedays){
    push @dia, $dia->day;
    for my $proj (0 .. $#projetos){
-      push @{ $proj[$proj] }, exists $dias{$dia->day}->{$projetos[$proj]} ? $dias{$dia->day}->{$projetos[$proj]}->hours : 0;
+      push @{ $proj[$proj] }, exists $dias{$dia->day}->{$projetos[$proj]}
+                               ?$dias{$dia->day}->{$projetos[$proj]}->hours
+                               :0
+      ;
    }
 }
 my @data = (\@dia, @proj);
+#use Data::Dumper; print Dumper \@data; exit;
 my $mod = "GD::Graph::";
 if(param("type")){
    $mod .= param("type");
@@ -72,14 +72,13 @@ if(param("type")){
 eval "require $mod";
 my $graph = new $mod( 1000, 400 );
 $graph->set( 
-        x_label           => 'Dia',
-        y_label           => 'Horas por projeto (h)',
-        title             => 'Dias de trabalho de ' . $temp->get_empregado->nome,
+        x_label => 'Dia',
+        y_label => 'Horas por projeto (h)',
+        title   => 'Dias de trabalho de ' . $temp->get_empregado->nome,
 );
 
-my $rs = $temp->{rs_proj};
-
-$graph->set_legend(map {$rs->find($_)->nome} @projetos);
+#$graph->set_legend(map {$rs->find($_)->nome} @projetos);
+$graph->set_legend(@projnome);
 
 #$graph->plot( \@data )->png;
 

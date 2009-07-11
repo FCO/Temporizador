@@ -312,8 +312,8 @@ sub tempo_projetos_por_dia {
    my $prim = DateTime->new(day => 1, month => $mes, year => $ano);
    my $ulti = DateTime->last_day_of_month(month => $mes, year => $ano)->add(days => 1)->subtract( seconds => 1 );;
    $ulti = $ulti > DateTime->now ? DateTime->now : $ulti;
+   $ulti->add(days => 1);
    
-
    my $empre_obj;
    if(not defined $empregado) {
       $empre_obj = $self->get_empregado;
@@ -328,7 +328,7 @@ sub tempo_projetos_por_dia {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins", {data => {'>=' => $prim->ymd, '<=' => $ulti->ymd}});
+   my $tempo = $empre_obj->search_related("logins", {data => {'>' => $prim->ymd, '<=' => $ulti->ymd}});
    my %dias;
    for my $linha($tempo->all){
       unless(exists $dias{$linha->data->day}->{$linha->projeto->id}){
