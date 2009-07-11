@@ -55,6 +55,7 @@ sub set_projeto {
       $self->{projeto} = $self->{rs_proj}->find(\%pars_filtrados);
    }else{
       my $user = $self->get_empregado;
+      die "Usuario não configurado$/" unless $user;
       my $log = $user->search_related("logins", undef, {order_by => "data DESC"})->first;
       if($log){
          return $self->{projeto} = $log->projeto;
@@ -77,7 +78,10 @@ sub get_caminhos {
 sub get_log {
    my $self = shift;
 
-   my $logs = $self->get_empregado->search_related("logins", {projeto => $self->get_projeto->id});
+   my $proj = $self->get_projeto;
+   return unless $proj;
+
+   my $logs = $self->get_empregado->search_related("logins", {projeto => $proj->id});
    ($logs->search(logout => undef)->all)[0];
 }
 
@@ -232,7 +236,7 @@ sub tempo_empregado_dia {
       if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
          $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
       } else {
-         $dia = DateTime->today->set_time_zone("America/Sao_Paulo");
+         $dia = DateTime->today;#->set_time_zone("America/Sao_Paulo");
       }
    }
 
@@ -250,7 +254,12 @@ sub tempo_empregado_dia {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins", {data => {'>=' => $dia->ymd, '<' => $dia->add(days => 1)->ymd}});
+   my $tempo = $empre_obj->search_related("logins", {data => {
+                                                              '>' => $dia->clone->subtract(days => 1)->ymd,
+                                                              '<' => $dia->clone->add(days => 1)->ymd
+                                                             }
+                                                    }
+   );
    my $tempo_total = DateTime::Duration->new;
    for my $log (map{$_->tempo}$tempo->all){
          $tempo_total += $log;
