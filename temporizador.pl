@@ -2,20 +2,20 @@
 
 use Gtk2::TrayIcon;
 use Gtk2::Notify -init, "Temporizador";
-use lib "/home/fernando/temporizador";
-use lib "/home/fernando/temporizador/lib";
+use lib ".";
+use lib "./lib";
 use temporizador;
 use temporizador::Schema;
 #use File::Find;
 #use Digest::MD5;
 use warnings;
 
-die "o Temporizador precisa ser configurado antes de ser utilizado (config.pl)$/"
-    unless -f "temporizador.conf";
+# die "o Temporizador precisa ser configurado antes de ser utilizado (config.pl)$/"
+#     unless -f "temporizador.conf";
 
 my %conf;
-open $CONF, "<", "temporizador.conf";
-if(defined $CONF){
+my $CONF;
+if( open $CONF, "<", "temporizador.conf" ){
     while(my $linha = <$CONF>){
         $linha =~ /^\s*(\w+)\s*:\s*(.*)\s*$/;
         $conf{$1} = $2;
@@ -23,11 +23,46 @@ if(defined $CONF){
 }
 close $CONF;
 
-
 my $email = shift;
 $email ||= $conf{user};
 
-our $temp = temporizador->new("dbi:$conf{banco}:dbname=$conf{dbname}", $conf{dbuser}, $conf{dbpass});
+my $mudou = 0;
+unless(exists $conf{dbname}){
+   $conf{dbname} = "temporizador.sql";
+   $mudou++;
+}
+unless(exists $conf{banco}){
+   $conf{banco} = "SQLite";
+   $mudou++;
+}
+our $temp = temporizador->new("dbi:$conf{banco}:dbname=$conf{dbname}" .
+                              (
+                               $conf{dbhost}
+                                ?";host=$conf{dbhost}"
+                                :""
+                              ),
+                              $conf{dbuser},
+                              $conf{dbpass},
+                             );
+
+unless(exists $conf{root}){
+   ($conf{root} = $0) =~ s{/.*?$}{};
+   $mudou++;
+}
+unless(exists $conf{user}){
+   $email = $temp->{rs_empre}->first->email;
+   $conf{user} = $email;
+   $mudou++;
+}
+
+if($mudou) {
+   open my $CONF, ">", "temporizador.conf";
+   for my $set (sort keys %conf){
+      print { $CONF } "$set: $conf{$set}$/";
+   }
+   close $CONF;
+}
+
 $temp->set_empregado(email => $email);
 $temp->set_projeto;
 

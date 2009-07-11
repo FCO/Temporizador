@@ -72,6 +72,17 @@ sub get_dbuser {
     $c->stash->{par}   = "dbuser";
 }
 
+sub set_dbhost {
+    my $c = shift;
+    $c->stash->{par}   = "dbhost";
+    $c->stash->{valor} = $c->argv->[0] || "";
+}
+
+sub get_dbhost {
+    my $c = shift;
+    $c->stash->{par}   = "dbhost";
+}
+
 sub set_dbpass {
     my $c = shift;
     $c->stash->{par}   = "dbpass";
