@@ -329,7 +329,15 @@ sub tempo_projetos_por_dia {
       }
    }
    my $tempo = $empre_obj->search_related("logins", {data => {'>=' => $prim->ymd, '<=' => $ulti->ymd}});
-   $tempo
+   my %dias;
+   for my $linha($tempo->all){
+      unless(exists $dias{$linha->data->day}->{$linha->projeto->id}){
+         $dias{$linha->data->day}->{$linha->projeto->id} = DateTime::Duration->new;
+      }else{
+         $dias{$linha->data->day}->{$linha->projeto->id} += $linha->tempo
+      }
+   }
+   \%dias
 }
 
 sub tempo_empregado_mes {
