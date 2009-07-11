@@ -36,8 +36,8 @@ Gtk2->init;
 my $icon= Gtk2::TrayIcon->new("test");
 my $event = Gtk2::EventBox->new;
 my $base = $conf{root};
-my $on  = Gtk2::Image->new_from_pixbuf(Gtk2::Gdk::Pixbuf->new_from_file("$base/on.jpeg"));
-my $off = Gtk2::Image->new_from_pixbuf(Gtk2::Gdk::Pixbuf->new_from_file("$base/off.jpeg"));
+my $on  = Gtk2::Image->new_from_pixbuf(Gtk2::Gdk::Pixbuf->new_from_file("$base/on.png"));
+my $off = Gtk2::Image->new_from_pixbuf(Gtk2::Gdk::Pixbuf->new_from_file("$base/off.png"));
 our %images = (on => $on, off => $off);
 $event->add($images{ $temp->is_logged_in ? "on" : "off"});
 our $EVENT = $event;
@@ -179,6 +179,6 @@ sub subrotina {
    }
 }
 END {
-print "Saindo...";
+print "Saindo...$/";
    $temp->logout;
 }
