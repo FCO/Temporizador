@@ -56,13 +56,11 @@ sub set_projeto {
    }else{
       my $user = $self->get_empregado;
       my $log = $user->search_related("logins", undef, {order_by => "data DESC"})->first;
-      $self->{projeto} = $log->projeto;
-      #my @projs;
-      #if((@projs = $self->{rs_proj}->search(undef)) > 1){
-      #   die "Projetos...";
-      #} else {
-      #   $self->{projeto} = $projs[0];
-      #}
+      if($log){
+         return $self->{projeto} = $log->projeto;
+      }else{
+         return $self->{projeto} = $self->{rs_proj}->first;
+      }
    }
 }
 
@@ -94,7 +92,11 @@ sub login {
 
    return if $self->is_logged_in;
 
-   $self->get_empregado->create_related('logins', {projeto => $self->get_projeto->id});
+   $self->get_empregado->create_related('logins', {
+                                                   projeto => $self->get_projeto->id,
+                                                   data    => DateTime->now->set_time_zone("America/Sao_Paulo"),
+                                                  }
+   );
    $self->get_log->dataf;
 }
 
@@ -104,8 +106,8 @@ sub logout {
    my $log = $self->get_log;
    return unless defined $log;
 
-   $log->update({logout => 'now()'});
-   $log->tempo;
+   $log->update({logout => DateTime->now->set_time_zone("America/Sao_Paulo")});
+   $log->tempof;
    #$self->{rs_login}->search(
    #                          {
    #                           id => $log->id
@@ -158,7 +160,7 @@ sub update_dir {
    if(my $dir_obj = $self->get_dir(caminho => $dir)) {
 
       if($md5 ne $dir_obj->md5) {
-         $dir_obj->update({md5 => $md5, atualizacao => 'now()'});
+         $dir_obj->update({md5 => $md5, atualizacao => DateTime->now});
          return "modificado";
       }
       return
@@ -185,7 +187,7 @@ sub update_arq {
    if(my $arq_obj = $self->get_arq_in_dir($dir_obj, $arq)) {
 
       if($md5 ne $arq_obj->md5) {
-         $arq_obj->update({md5 => $md5, atualizacao => 'now()'});
+         $arq_obj->update({md5 => $md5, atualizacao => DateTime->now});
          return "modificado";
       }
       return
@@ -196,7 +198,8 @@ sub update_arq {
 
 sub tempo_total_projeto {
    my $self    = shift;
-   my $projeto = shift;
+   my %par     = @_;
+   my $projeto = $par{projeto};
 
    my $proj_obj;
    if(not defined $projeto) {
@@ -214,24 +217,24 @@ sub tempo_total_projeto {
    for my $log (map{$_->tempo}$tempo->all){
          $tempo_total += $log;
    }
+   return $tempo_total if exists $par{retorno} and $par{retorno} eq "DateTime";
    ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
-   $s %= 60;
+   $s = sprintf "%02d", $s % 60;
    "$h:$m:$s"
-   #my $tempo = $proj_obj->search_related("logins",
-   #                undef,
-   #                {
-   #                "select" => [
-   #                             "date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))"
-   #                            ],
-   #                as       => [qw/tempo_total/],
-   #                }
-   #               )->single;
-   #$tempo->get_column("tempo_total");
 }
 
 sub tempo_empregado_dia {
    my $self      = shift;
-   my $empregado = shift;
+   my %par       = @_;
+   my $empregado = $par{empregado};
+   my $dia       = $par{DateTime};
+   unless(defined $dia){
+      if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
+         $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
+      } else {
+         $dia = DateTime->today->set_time_zone("America/Sao_Paulo");
+      }
+   }
 
    my $empre_obj;
    if(not defined $empregado) {
@@ -247,29 +250,29 @@ sub tempo_empregado_dia {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins", {data => {'>=' => DateTime->today}});
+   my $tempo = $empre_obj->search_related("logins", {data => {'>=' => $dia->ymd, '<' => $dia->add(days => 1)->ymd}});
    my $tempo_total = DateTime::Duration->new;
    for my $log (map{$_->tempo}$tempo->all){
          $tempo_total += $log;
    }
+   return $tempo_total if exists $par{retorno} and $par{retorno} eq "DateTime";
    ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
-   $s %= 60;
+   $s = sprintf "%02d", $s % 60;
    "$h:$m:$s"
-   #               {
-   #               "select" => [
-   #                            "date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))"
-   #                           ],
-   #               as       => [qw/tempo_total/],
-   #               }
-   #              )->single;
-   #$tempo->get_column("tempo_total");
-                
 }
 
 sub tempo_projeto_dia {
    my $self      = shift;
-   my $projeto   = shift;
-   my $empregado = shift;
+   my %par       = @_;
+   my $projeto   = $par{projeto};
+   my $empregado = $par{empregado};
+   unless(defined $dia){
+      if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
+         $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
+      } else {
+         $dia = DateTime->today->set_time_zone("America/Sao_Paulo");
+      }
+   }
 
    my $empre_obj;
    if(not defined $empregado) {
@@ -286,7 +289,7 @@ sub tempo_projeto_dia {
       }
    }
    my $tempo = $empre_obj->search_related("logins", {
-                                                     data    => {'>=' => DateTime->today},
+                                                     data    => {'>=' => $dia->ymd, '<' => $dia->add(days => 1)->ymd},
                                                      projeto => $projeto || $self->get_projeto->id
                                                     }
    );
@@ -294,23 +297,22 @@ sub tempo_projeto_dia {
    for my $log (map{$_->tempo}$tempo->all){
          $tempo_total += $log;
    }
+   return $tempo_total if exists $par{retorno} and $par{retorno} eq "DateTime";
    ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
-   $s %= 60;
+   $s = sprintf "%02d", $s % 60;
    "$h:$m:$s"
-   #               {
-   #               "select" => [
-   #                            "date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))"
-   #                           ],
-   #               as       => [qw/tempo_total/],
-   #               }
-   #              )->single;
-   #$tempo->get_column("tempo_total");
-                
 }
 
 sub tempo_projetos_por_dia {
    my $self      = shift;
-   my $empregado = shift;
+   my %par       = @_;
+   my $empregado = $par{empregado};
+   my $mes       = $par{mes} || DateTime->today->month;
+   my $ano       = $par{ano} || DateTime->today->year;
+   my $prim = DateTime->new(day => 1, month => $mes, year => $ano);
+   my $ulti = DateTime->last_day_of_month(month => $mes, year => $ano)->add(days => 1)->subtract( seconds => 1 );;
+   $ulti = $ulti > DateTime->now ? DateTime->now : $ulti;
+   
 
    my $empre_obj;
    if(not defined $empregado) {
@@ -326,28 +328,20 @@ sub tempo_projetos_por_dia {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins",
-                  undef,
-                  {
-                  "select" => [
-                               "extract( epoch from interval '0 sec' + date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))) / (60 * 60)",
-                               "projeto", "date_trunc('day', data) as dia"
-                              ],
-                  as       => [qw/tempo_total projeto dia/],
-                  group_by =>[qw/projeto dia/],
-                  }
-                 );
-   #($tempo->get_column("projeto")->all, $tempo->get_column("data")->all, $tempo->get_column("tempo_total")->all);
-   #my %a;
-   #@a{$tempo->get_column("data")->all} = {}
-   #1
-   #$tempo->get_column("tempo_total")#, $tempo->get_column("projeto"),$tempo->get_column("dia");
+   my $tempo = $empre_obj->search_related("logins", {data => {'>=' => $prim->ymd, '<=' => $ulti->ymd}});
    $tempo
 }
 
 sub tempo_empregado_mes {
    my $self      = shift;
-   my $empregado = shift;
+   my %par       = @_;
+   my $empregado = $par{empregado};
+   my $mes       = $par{mes} || DateTime->today->month;
+   my $ano       = $par{ano} || DateTime->today->year;
+   my $prim = DateTime->new(day => 1, month => $mes, year => $ano);
+   my $ulti = DateTime->last_day_of_month(month => $mes, year => $ano)->add(days => 1)->subtract( seconds => 1 );;
+   $ulti = $ulti > DateTime->now ? DateTime->now : $ulti;
+   
 
    my $empre_obj;
    if(not defined $empregado) {
@@ -363,25 +357,25 @@ sub tempo_empregado_mes {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins",
-                  undef,
-                  {
-                  "select" => [
-                               "date_trunc('second', sum(CASE WHEN logout is NULL THEN now() ELSE logout END - data))",
-                               "date_trunc('month', data) AS mes",
-                              ],
-                  as       => [qw/tempo_total mes/],
-                  group_by => "mes",
-                  order_by => "mes DESC",
-                  }
-                 )->single;
-   $tempo->get_column("tempo_total");
-                
+   my $tempo = $empre_obj->search_related("logins", {data => {'>=' => $prim->ymd, '<=' => $ulti->ymd}});
+   my $tempo_total = DateTime::Duration->new;
+   for my $log ($tempo->all){
+      $tempo_total +=$log->tempo;
+   }
+   ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
+   $s = sprintf "%02d", $s % 60;
+   "$h:$m:$s"
 }
 
 sub tempo_extra_empregado_mes {
    my $self      = shift;
-   my $empregado = shift;
+   my %par       = @_;
+   my $empregado = $par{empregado};
+   my $mes       = $par{mes} || DateTime->today->month;
+   my $ano       = $par{ano} || DateTime->today->year;
+   my $prim = DateTime->new(day => 1, month => $mes, year => $ano);
+   my $ulti = DateTime->last_day_of_month(month => $mes, year => $ano)->add(days => 1)->subtract( seconds => 1 );;
+   $ulti = $ulti > DateTime->now ? DateTime->now : $ulti;
 
    my $empre_obj;
    if(not defined $empregado) {
@@ -397,29 +391,30 @@ sub tempo_extra_empregado_mes {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $self->{rs_login}->search_literal(
-      "SELECT extra 
-       FROM (
-          SELECT date_trunc('month', dia) AS mes, sum(extra) AS extra 
-          FROM (
-             SELECT date_trunc('day', data) AS dia,
-                date_trunc('second', sum(
-                CASE WHEN logout is NULL THEN now()
-                   ELSE logout
-                END - data)) - interval '8 hour' AS extra 
-             FROM login me 
-             WHERE ( ( ( me.empregado = ? ) ) ) group by dia order by dia) AS tudo 
-          WHERE extra > interval '0 sec' group by mes) AS meses 
-       WHERE mes = month()",
-       $empre_obj->id,
-   )->single;
-   $tempo->get_column("extra");
-                
+   my $atual = $prim->clone;
+   my $total = DateTime::Duration->new;
+   while($atual == $ulti){
+      $total += $self->tempo_extra_empregado_dia(DateTime => $atual);
+      $atual = $atual->clone->add(days => 1);
+   }
+   return $total if exists $par{retorno} and $par{retorno} eq "DateTime";
+   ($h, $m, $s) = map {sprintf "%02d", $_} $total->in_units("hours", "minutes", "seconds");
+   $s = sprintf "%02d", $s % 60;
+   "$h:$m:$s"
 }
 
 sub tempo_extra_empregado_dia {
    my $self      = shift;
-   my $empregado = shift;
+   my %par       = @_;
+   my $empregado = $par{empregado};
+   my $dia       = $par{DateTime};
+   unless(defined $dia){
+      if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
+         $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
+      } else {
+         $dia = DateTime->today;
+      }
+   }
 
    my $empre_obj;
    if(not defined $empregado) {
@@ -435,30 +430,16 @@ sub tempo_extra_empregado_dia {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins",
-                  data => {'>=' => "today()"},
-                  {
-                  "select" => [
-                               "CASE WHEN 
-                                  date_trunc('second', sum(
-                                      CASE WHEN logout is NULL THEN now()
-                                           ELSE logout
-                                      END - data)) - interval '8 hour'
-                                  > interval '0 sec'
-                                THEN
-                                  date_trunc('second', sum(
-                                      CASE WHEN logout is NULL THEN now()
-                                           ELSE logout
-                                      END - data)) - interval '8 hour'
-                               ELSE interval '0 sec'
-                               END
-                               "
-                              ],
-                  as       => [qw/tempo_total/],
-                  }
-                 )->single;
-   $tempo->get_column("tempo_total");
-                
+   my $tempo = $empre_obj->search_related("logins", {data => {'>=' => $dia->ymd, '<' => $dia->add(days => 1)->ymd}});
+   my $tempo_total = DateTime::Duration->new;
+   for my $log (map{$_->tempo}$tempo->all){
+         $tempo_total += $log;
+   }
+   $tempo_total = $tempo_total->hours <= 8 ? DateTime::Duration->new : $tempo_total->subtraction(hours => 8);
+   return $tempo_total if exists $par{retorno} and $par{retorno} eq "DateTime";
+   ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
+   $s = sprintf "%02d", $s % 60;
+   "$h:$m:$s"
 }
 
 

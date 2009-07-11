@@ -2,29 +2,29 @@ package temporizador::Schema::Login;
 
 use strict;
 use warnings;
-
+use DateTime;
 use base 'DBIx::Class';
 
-__PACKAGE__->load_components("Core");
+__PACKAGE__->load_components("InflateColumn::DateTime", "Core");
 __PACKAGE__->table("login");
 __PACKAGE__->add_columns(
   "id",
   {
     data_type => "integer",
-    default_value => "nextval('login_id'::regclass)",
+    sequence => "login_id",
     is_nullable => 0,
     size => 4,
   },
   "data",
   {
-    data_type => "timestamp without time zone",
-    default_value => "now()",
+    data_type => "datetime",
+    default_value => 'now()',
     is_nullable => 0,
     size => 8,
   },
   "logout",
   {
-    data_type => "timestamp without time zone",
+    data_type => "datetime",
     default_value => undef,
     is_nullable => 1,
     size => 8,
@@ -52,34 +52,25 @@ __PACKAGE__->belongs_to(
 
 sub dataf {
    my $self = shift;
-   my $ret = $1 if $self->data =~ /(\d+:\d+:\d+)/;
+   my $ret = $self->data->hms;
    $ret
 }
 
 sub tempo {
    my $self = shift;
-   my @ret;
 
    if(defined $self->logout) {
-      @ret = temporizador::Schema->resultset('Login')
-                ->search({
-                          id => $self->id
-                         },
-                         {
-                          "select" => ["date_trunc('second', age(now(), data))"], 
-                          as       => [qw/tempo/]
-                         });
+      return $self->logout - $self->data;
    }else{
-      @ret = temporizador::Schema->resultset('Login')
-                ->search({
-                          id => $self->id
-                         }, 
-                         {
-                          "select" => ["date_trunc('second', age(now(), data))"], 
-                          as       => [qw/tempo/]
-                         });
+      return DateTime->now->set_time_zone("America/Sao_Paulo") - $self->data;
    }
-   return $ret[-1]->get_column('tempo');
+}
+
+sub tempof {
+   my $self = shift;
+   my ($h, $m, $s) = $self->tempo->in_units("hours", "minutes", "seconds");
+   $s %= 60;
+   join ":", map {sprintf "%02d", $_} $h, $m, $s
 }
 
 # You can replace this text with custom content, and it will be preserved on regeneration

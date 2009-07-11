@@ -9,9 +9,12 @@ App::Rad->run;
 sub pre_process {
     my $c = shift;
 
+    $c->load_config("temporizador.conf");
+
     (my $resultset = $0) =~ s{^.*/|\.pl$}{}g;
     $resultset = ucfirst $resultset;
-    $c->stash->{Schema} = 'temporizador::Schema'->connect('dbi:Pg:dbname=temporizador');
+    my $connect_str = 'dbi:' . $c->config->{banco} . ':dbname=' . $c->config->{dbname};
+    $c->stash->{Schema} = 'temporizador::Schema'->connect($connect_str, $c->config->{dbuser}, $c->config->{dbpass});
     $c->stash->{DB}     = $c->stash->{Schema}->resultset($resultset);
 }
 

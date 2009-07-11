@@ -11,7 +11,7 @@ __PACKAGE__->add_columns(
   "id",
   {
     data_type => "integer",
-    default_value => "nextval('path_id'::regclass)",
+    sequence => "path_id",
     is_nullable => 0,
     size => 4,
   },

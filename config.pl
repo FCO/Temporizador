@@ -16,7 +16,7 @@ sub post_process {
         }
     }
     close $CONF;
-    if($c->stash->{valor}){
+    if(exists $c->stash->{valor}){
         $conf{$c->stash->{par}} = $c->stash->{valor};
         open $CONF, ">", "temporizador.conf";
         for my $nome(sort keys %conf){

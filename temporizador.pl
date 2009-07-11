@@ -52,7 +52,7 @@ Gtk2->main;
 sub timer {
    my $event = $EVENT;
    if(my $log = $temp->get_log){
-      my $retorno = $log->tempo;
+      my $retorno = $log->tempof;
       Gtk2::Notify->new("Temporizador", $retorno, 25, $event)->show;
    }
    42;
@@ -73,8 +73,12 @@ sub menu {
     my $proj_atual = $temp->get_projeto;
 
     my $log = $temp->get_log;
-    my $menu_tempo = Gtk2::SeparatorMenuItem->new_with_label($log->tempo) if $log;
-    $menu->add($menu_tempo) if $log;
+    if($log){
+       my ($h, $m, $s) = map {sprintf "%02d", $_} $log->tempo->in_units("hours", "minutes", "seconds");
+       $s = sprintf "%02d", $s % 60;
+       my $menu_tempo = Gtk2::SeparatorMenuItem->new_with_label(join ":", $h, $m, $s);
+       $menu->add($menu_tempo);
+    }
 
     my $menu_atual = Gtk2::SeparatorMenuItem->new_with_label("Projeto Atual: " . $proj_atual->nome);
     $menu->add($menu_atual);
@@ -151,10 +155,10 @@ sub logout {
    my $tempophj = $temp->tempo_projeto_dia;
    my $tempo = $temp->logout;
    my $return;
-   $return .= "$ult_proj deslogado:$/$/";
-   $return .= "TEMPO: $tempo$/";
-   $return .= "Tempo hoje $ult_proj: $tempophj" . $/;
-   $return .= "Tempo hoje total: $tempo_hj" . $/;
+   $return .= qq#$ult_proj deslogado:$/$/#;
+   $return .= qq#TEMPO: $tempo$/#;
+   $return .= qq#Tempo hoje $ult_proj: $tempophj$/#;
+   $return .= qq#Tempo hoje total: $tempo_hj$/#;
    #$return .= "Criados:$/" . (join $/, @criados) . $/ if @criados;
    #$return .= "Modificados:$/" . (join $/, @modificados) . $/ if @modificados;
 
