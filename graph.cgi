@@ -40,17 +40,25 @@ my @projnome = map {$_->nome} sort {$a->id <=> $b->id} $temp->{rs_proj}->all;
 my @projetos = sort {$a <=> $b} map {$_->id} $temp->{rs_proj}->all;
 my @dia;
 my @proj;
+my %inicio;
+my %fim;
 for my $dia (@datetimedays){
    push @dia, $dia->day;
    for my $proj (0 .. $#projetos){
-      if($dia >= $dias{$dia->day}->{$projetos[$proj]}->{inicio}
-         and $dia <= $dias{$dia->day}->{$projetos[$proj]}->{fim}) {
-         push @{ $proj[$proj] }, exists $dias{$dia->day}->{$projetos[$proj]}->{tempo}
-                                  ?$dias{$dia->day}->{$projetos[$proj]}->{tempo}->hours
-                                  :0
+      if(exists $dias{$dia->day}->{$projetos[$proj]}->{inicio} and not exists $inicio{$projetos[$proj]}){
+         $inicio{$projetos[$proj]} = $dias{$dia->day}->{$projetos[$proj]}->{inicio}->clone;
+         my $d = $inicio{$projetos[$proj]}->clone;
+         $inicio{$projetos[$proj]} = DateTime->new(day => $d->day, month =>$d->month, year => $d->year);
+         $proj[$proj]->[-1] = 0 if @{ $proj[$proj] };
+      }
+      if( exists $inicio{$projetos[$proj]} and $dia >= $inicio{$projetos[$proj]}) {
+         push @{ $proj[$proj] },
+            exists $dias{$dia->day}->{$projetos[$proj]}->{tempo}
+             ?$dias{$dia->day}->{$projetos[$proj]}->{tempo}->hours
+             :0
          ;
       } else {
-         push @{ $proj[$proj] }, undef;
+         push @{ $proj[$proj] }, "a";
       }
    }
 }
