@@ -266,11 +266,12 @@ sub tempo_projeto_dia {
    my %par       = @_;
    my $projeto   = $par{projeto};
    my $empregado = $par{empregado};
-   unless(defined $dia){
+   my $dia;
+   unless(defined $par{DateTime}){
       if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
          $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
       } else {
-         $dia = DateTime->today->set_time_zone("America/Sao_Paulo");
+         $dia = DateTime->today;#->set_time_zone("America/Sao_Paulo");
       }
    }
 
@@ -289,7 +290,10 @@ sub tempo_projeto_dia {
       }
    }
    my $tempo = $empre_obj->search_related("logins", {
-                                                     data    => {'>=' => $dia->ymd, '<' => $dia->add(days => 1)->ymd},
+                                                     data    => {
+                                                                 '>' => $dia->clone->subtract(days => 1)->ymd,
+                                                                 '<' => $dia->clone->add(days => 1)->ymd
+                                                                },
                                                      projeto => $projeto || $self->get_projeto->id
                                                     }
    );
