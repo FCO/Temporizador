@@ -341,14 +341,14 @@ sub tempo_projetos_por_dia {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins", {data => {'>' => $prim->ymd, '<=' => $ulti->ymd}});
+   my $tempo = $empre_obj->search_related("logins", {data => {'>=' => $prim->ymd, '<=' => $ulti->ymd}});
    my %dias;
    for my $linha($tempo->all){
+print $linha->tempof, $/;
       unless(exists $dias{$linha->data->day}->{$linha->projeto->id}){
          $dias{$linha->data->day}->{$linha->projeto->id} = DateTime::Duration->new;
-      }else{
-         $dias{$linha->data->day}->{$linha->projeto->id} += $linha->tempo
       }
+      $dias{$linha->data->day}->{$linha->projeto->id} += $linha->tempo->clone;
    }
    \%dias
 }

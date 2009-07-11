@@ -20,18 +20,6 @@ close $CONF;
 
 my $temp   = temporizador->new("dbi:$conf{banco}:dbname=$conf{dbname}", $conf{dbuser}, $conf{dbpass});
 $temp->set_empregado(email => param("user") || $conf{user});
-
-#my $linhas = $temp->tempo_projetos_por_dia();
-#my %proj;
-#my %dias;
-#my @projetos;
-#my %projetos;
-#my ($dmin, $dmax);
-#for my $linha ($linhas->all){
-#   my $dia = (split /\s+/,$linha->get_column("dia"))[0];
-#   $dias{$dia}->{$linha->get_column("projeto")} = $linha->get_column("tempo_total");
-#   $projetos{$linha->get_column("projeto")}++;
-#}
 my $mesIni;
 my $year  = param("ano") || DateTime->today->year;
 my $month = param("mes") || DateTime->today->month;
