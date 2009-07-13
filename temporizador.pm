@@ -236,9 +236,13 @@ sub tempo_empregado_dia {
       if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
          $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
       } else {
-         $dia = DateTime->today;#->set_time_zone("America/Sao_Paulo");
+         $dia = DateTime->today->set_time_zone("America/Sao_Paulo");
       }
    }
+   my %dia = (
+              inicio => $dia->clone->truncate(to => 'day'),
+              fim    => $dia->clone->truncate(to => 'day')->add(days => 1)->subtract(seconds => 1)
+             );
 
    my $empre_obj;
    if(not defined $empregado) {
@@ -254,15 +258,24 @@ sub tempo_empregado_dia {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins", {data => {
-                                                              '>' => $dia->clone->subtract(days => 1)->ymd,
-                                                              '<' => $dia->clone->add(days => 1)->ymd
-                                                             }
-                                                    }
+   my $tempo = $empre_obj->search_related("logins", [
+                                                     {
+                                                      data   => {
+                                                                 '>=' => $dia->clone->ymd,
+                                                                 '<' => $dia->clone->add(days => 1)->ymd,
+                                                                }
+                                                     },
+                                                     {
+                                                      logout => {
+                                                                 '>=' => $dia->clone->ymd,
+                                                                 '<' => $dia->clone->add(days => 1)->ymd,
+                                                                }
+                                                     },
+                                                    ]
    );
    my $tempo_total = DateTime::Duration->new;
-   for my $log (map{$_->tempo}$tempo->all){
-         $tempo_total += $log;
+   for my $log ($tempo->all){
+         $tempo_total += $log->tempo(%dia);
    }
    return $tempo_total if exists $par{retorno} and $par{retorno} eq "DateTime";
    ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
@@ -280,9 +293,15 @@ sub tempo_projeto_dia {
       if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
          $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
       } else {
-         $dia = DateTime->today;#->set_time_zone("America/Sao_Paulo");
+         $dia = DateTime->today->set_time_zone("America/Sao_Paulo");
       }
+   }else{
+      $dia = $par{DateTime};
    }
+   my %dia = (
+              inicio => $dia->clone->truncate(to => 'day'),
+              fim    => $dia->clone->truncate(to => 'day')->add(days => 1)->subtract(seconds => 1)
+             );
 
    my $empre_obj;
    if(not defined $empregado) {
@@ -298,17 +317,26 @@ sub tempo_projeto_dia {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins", {
-                                                     data    => {
-                                                                 '>' => $dia->clone->subtract(days => 1)->ymd,
-                                                                 '<' => $dia->clone->add(days => 1)->ymd
-                                                                },
+   my $tempo = $empre_obj->search_related("logins", { -or => [
+                                                              {
+                                                               data   => {
+                                                                          '>=' => $dia->clone->ymd,
+                                                                          '<' => $dia->clone->add(days => 1)->ymd,
+                                                                         }
+                                                              },
+                                                              {
+                                                               logout => {
+                                                                          '>=' => $dia->clone->ymd,
+                                                                          '<' => $dia->clone->add(days => 1)->ymd,
+                                                                         }
+                                                              },
+                                                             ],
                                                      projeto => $projeto || $self->get_projeto->id
                                                     }
    );
    my $tempo_total = DateTime::Duration->new;
-   for my $log (map{$_->tempo}$tempo->all){
-         $tempo_total += $log;
+   for my $log (map{$_->tempo(%dia)}$tempo->all){
+         $tempo_total += $log->is_negative ? $log * -1 : $log;
    }
    return $tempo_total if exists $par{retorno} and $par{retorno} eq "DateTime";
    ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
@@ -353,7 +381,25 @@ sub tempo_projetos_por_dia {
       unless(exists $dias{$linha->data->day}->{$linha->projeto->id}->{tempo}){
          $dias{$linha->data->day}->{$linha->projeto->id}->{tempo} = DateTime::Duration->new;
       }
-      $dias{$linha->data->day}->{$linha->projeto->id}->{tempo} += $linha->tempo->clone;
+      if($linha->data->clone->truncate(to => 'day') != $linha->logout->clone->truncate(to => 'day')){
+         my $data    = $linha->data  ->clone->truncate(to => 'day');
+         my $dataf   = $data         ->clone->add(days => 1)->subtract(seconds => 1);
+         my $logout  = $linha->logout->clone;
+         my %data_atual = (inicio => $data->clone, fim => $dataf);
+         until($data_atual{inicio} > $logout){
+            unless(exists $dias{$data_atual{inicio}->day}->{$linha->projeto->id}->{tempo}){
+               $dias{$data_atual{inicio}->day}->{$linha->projeto->id}->{tempo} = DateTime::Duration->new;
+            }
+            $dias{$data_atual{inicio}->day}->{$linha->projeto->id}->{tempo}
+               += $linha->tempo(%data_atual);
+            $data_atual{inicio}->add(days => 1);
+            $data_atual{fim}   ->add(days => 1);
+         }
+         #$dias{$linha->logout->day}->{$linha->projeto->id}->{tempo}
+         #   += $linha->tempo(inicio => $logout, fim => $logoutf);
+      } else {
+         $dias{$linha->data->day}->{$linha->projeto->id}->{tempo} += $linha->tempo;
+      }
    }
    \%dias
 }
@@ -385,8 +431,9 @@ sub tempo_empregado_mes {
    }
    my $tempo = $empre_obj->search_related("logins", {data => {'>=' => $prim->ymd, '<=' => $ulti->ymd}});
    my $tempo_total = DateTime::Duration->new;
-   for my $log ($tempo->all){
-      $tempo_total +=$log->tempo;
+   for my $log (map {$_->tempo(inicio => $prim, fim => $ulti)} $tempo->all){
+      #$tempo_total +=$log->tempo;
+      $tempo_total += $log->is_negative ? $log * -1 : $log;
    }
    ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
    $s = sprintf "%02d", $s % 60;

@@ -58,17 +58,31 @@ sub dataf {
 
 sub tempo {
    my $self = shift;
+   my %par  = @_;
+   my($inicio, $fim);
 
+   if(exists $par{inicio} and $self->data < $par{inicio}){
+      $inicio = $par{inicio};
+   } else {
+      $inicio = $self->data;
+   }
    if(defined $self->logout) {
-      return $self->logout - $self->data;
+      if(exists $par{fim} and $self->logout > $par{fim}){
+         $fim = $par{fim};
+      } else {
+         $fim = $self->logout;
+      }
+      my $diferenca;
+      $diferenca = $fim - $inicio;
+      return $diferenca;
    }else{
-      return DateTime->now->set_time_zone("America/Sao_Paulo") - $self->data;
+      return DateTime->now->set_time_zone("America/Sao_Paulo") - $inicio;
    }
 }
 
 sub tempof {
    my $self = shift;
-   my ($h, $m, $s) = $self->tempo->in_units("hours", "minutes", "seconds");
+   my ($h, $m, $s) = $self->tempo(@_)->in_units("hours", "minutes", "seconds");
    $s %= 60;
    join ":", map {sprintf "%02d", $_} $h, $m, $s
 }
