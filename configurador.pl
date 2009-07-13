@@ -39,10 +39,34 @@ our $temp = temporizador->new("dbi:$conf{banco}:dbname=$conf{dbname}" .
 
 our $gladexml = Gtk2::GladeXML->new("Configurador/configurador.glade");
 $gladexml->signal_autoconnect_from_package(main);
-my $arvore = $gladexml->get_widget("projetos_arvore");
+my $janela = $gladexml->get_widget("window1");
+my $arvore = $gladexml->get_widget("projetos_arvore") || die;
+my $ok_btn = $gladexml->get_widget("novo_proj_btn")   || die;
+my $apagap = $gladexml->get_widget("apaga_proj")   || die;
+$ok_btn->signal_connect(clicked => \&novo_projeto);
+$apagap->signal_connect(clicked => \&apaga_projeto);
 $arvore->signal_connect(visibility_notify_event => \&pega_projetos);
 $arvore->signal_connect("cursor-changed" => \&selected);
+$janela->signal_connect("destroy" => sub{exit});
 Gtk2->main;
+
+sub apaga_projeto {
+   my $arvore = $gladexml->get_widget("projetos_arvore");
+   my ($model, $iter) = $arvore->get_selection->get_selected;
+   return unless $iter;
+   my $proj = $model->get ($iter, 0);
+   $temp->{rs_proj}->find({nome => $proj})->delete;
+   pega_projetos($arvore);
+}
+
+sub novo_projeto {
+   my $novo_proj = $gladexml->get_widget("novo_projeto");
+   my $proj = $novo_proj->get_text;
+   $temp->{rs_proj}->create({nome => $proj});
+   my $proj = $novo_proj->set_text("");
+   my $arvore = $gladexml->get_widget("projetos_arvore");
+   pega_projetos($arvore);
+}
 
 sub pega_projetos {
    my $tree = shift;
@@ -57,11 +81,14 @@ sub pega_projetos {
       0
    );
    my $cel = Gtk2::CellRendererText->new;
+   my $old_col = $tree->get_column(0);
+   $tree->remove_column($old_col) if $old_col;
    $tree->append_column($col);
 }
 
 sub selected {
    my $tree = shift;
+   our $timer = Glib::Timeout->add(1000, \&timer);
    my ($model, $iter) = $tree->get_selection->get_selected;
    return unless $iter;
    my $proj = $model->get ($iter, 0);
@@ -79,6 +106,10 @@ sub selected {
    $tempo_proj->set_text($tempo);
 }
 
+sub timer {
+   my $arvore = $gladexml->get_widget("projetos_arvore");
+   selected($arvore)
+}
 
 
 

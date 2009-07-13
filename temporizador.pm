@@ -19,6 +19,7 @@ sub new {
                rs_proj  => $schema->resultset('Projeto')  ,
                rs_login => $schema->resultset('Login')    ,
                rs_empre => $schema->resultset('Empregado'),
+               timezone => "America/Sao_Paulo",
               };
    my $self = bless $hash, $class;
 }
@@ -107,7 +108,7 @@ sub login {
 
    $self->get_empregado->create_related('logins', {
                                                    projeto => $self->get_projeto->id,
-                                                   data    => DateTime->now->set_time_zone("America/Sao_Paulo"),
+                                                   data    => DateTime->now->set_time_zone($self->{timezone}),
                                                   }
    );
    $self->get_log->dataf;
@@ -119,7 +120,7 @@ sub logout {
    my $log = $self->get_log;
    return unless defined $log;
 
-   $log->update({logout => DateTime->now->set_time_zone("America/Sao_Paulo")});
+   $log->update({logout => DateTime->now->set_time_zone($self->{timezone})});
    $log->tempof;
    #$self->{rs_login}->search(
    #                          {
@@ -173,7 +174,7 @@ sub update_dir {
    if(my $dir_obj = $self->get_dir(caminho => $dir)) {
 
       if($md5 ne $dir_obj->md5) {
-         $dir_obj->update({md5 => $md5, atualizacao => DateTime->now});
+         $dir_obj->update({md5 => $md5, atualizacao => DateTime->now->set_time_zone($self->{timezone})});
          return "modificado";
       }
       return
@@ -200,7 +201,7 @@ sub update_arq {
    if(my $arq_obj = $self->get_arq_in_dir($dir_obj, $arq)) {
 
       if($md5 ne $arq_obj->md5) {
-         $arq_obj->update({md5 => $md5, atualizacao => DateTime->now});
+         $arq_obj->update({md5 => $md5, atualizacao => DateTime->now->set_time_zone($self->{timezone})});
          return "modificado";
       }
       return
@@ -245,9 +246,10 @@ sub tempo_empregado_dia {
       if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
          $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
       } else {
-         $dia = DateTime->today->set_time_zone("America/Sao_Paulo");
+         $dia = DateTime->now;
       }
    }
+   $dia->set_time_zone($self->{timezone})->truncate(to => 'day');
    my %dia = (
               inicio => $dia->clone->truncate(to => 'day'),
               fim    => $dia->clone->truncate(to => 'day')->add(days => 1)->subtract(seconds => 1)
@@ -302,11 +304,12 @@ sub tempo_projeto_dia {
       if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
          $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
       } else {
-         $dia = DateTime->today->set_time_zone("America/Sao_Paulo");
+         $dia = DateTime->now;
       }
    }else{
-      $dia = $par{DateTime};
+      $dia = $par{DateTime}->clone;
    }
+   $dia->set_time_zone($self->{timezone})->truncate(to => 'day');
    my %dia = (
               inicio => $dia->clone->truncate(to => 'day'),
               fim    => $dia->clone->truncate(to => 'day')->add(days => 1)->subtract(seconds => 1)
@@ -363,11 +366,12 @@ sub tempo_total_projeto_dia {
       if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
          $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
       } else {
-         $dia = DateTime->today->set_time_zone("America/Sao_Paulo");
+         $dia = DateTime->now;
       }
    }else{
       $dia = $par{DateTime};
    }
+   $dia->set_time_zone($self->{timezone})->truncate(to => 'day');
    my %dia = (
               inicio => $dia->clone->truncate(to => 'day'),
               fim    => $dia->clone->truncate(to => 'day')->add(days => 1)->subtract(seconds => 1)
@@ -404,12 +408,13 @@ sub tempo_projetos_por_dia {
    my $self      = shift;
    my %par       = @_;
    my $empregado = $par{empregado};
-   my $mes       = $par{mes} || DateTime->today->month;
-   my $ano       = $par{ano} || DateTime->today->year;
+   my $mes       = $par{mes} || DateTime->now->set_time_zone($self->{timezone})->month;
+   my $ano       = $par{ano} || DateTime->now->set_time_zone($self->{timezone})->year;
    my $prim = DateTime->new(day => 1, month => $mes, year => $ano);
-   my $ulti = DateTime->last_day_of_month(month => $mes, year => $ano)->add(days => 1)->subtract( seconds => 1 );;
+   my $ulti = DateTime->last_day_of_month(year=>$prim->year,month =>$prim->month)->add(days => 1)->subtract( seconds => 1 );
    $ulti = $ulti > DateTime->now ? DateTime->now : $ulti;
-   $ulti->add(days => 1);
+   $prim->add(days => 1);
+   $ulti->set_time_zone($self->{timezone})->add(days => 1);
    
    my $empre_obj;
    if(not defined $empregado) {
@@ -462,12 +467,12 @@ sub tempo_empregado_mes {
    my $self      = shift;
    my %par       = @_;
    my $empregado = $par{empregado};
-   my $mes       = $par{mes} || DateTime->today->month;
-   my $ano       = $par{ano} || DateTime->today->year;
-   my $prim = DateTime->new(day => 1, month => $mes, year => $ano);
+   my $mes       = $par{mes} || DateTime->now->set_time_zone($self->{timezone})->month;
+   my $ano       = $par{ano} || DateTime->now->set_time_zone($self->{timezone})->year;
+   my $prim = DateTime->new(day => 1, month => $mes, year => $ano)->set_time_zone($self->{timezone});
    my $ulti = DateTime->last_day_of_month(month => $mes, year => $ano)->add(days => 1)->subtract( seconds => 1 );;
    $ulti = $ulti > DateTime->now ? DateTime->now : $ulti;
-   
+   $ulti->set_time_zone($self->{timezone});
 
    my $empre_obj;
    if(not defined $empregado) {
@@ -498,11 +503,12 @@ sub tempo_extra_empregado_mes {
    my $self      = shift;
    my %par       = @_;
    my $empregado = $par{empregado};
-   my $mes       = $par{mes} || DateTime->today->month;
-   my $ano       = $par{ano} || DateTime->today->year;
-   my $prim = DateTime->new(day => 1, month => $mes, year => $ano);
+   my $mes       = $par{mes} || DateTime->now->set_time_zone($self->{timezone})->month;
+   my $ano       = $par{ano} || DateTime->now->set_time_zone($self->{timezone})->year;
+   my $prim = DateTime->new(day => 1, month => $mes, year => $ano)->set_time_zone($self->{timezone});
    my $ulti = DateTime->last_day_of_month(month => $mes, year => $ano)->add(days => 1)->subtract( seconds => 1 );;
    $ulti = $ulti > DateTime->now ? DateTime->now : $ulti;
+   $ulti->set_time_zone($self->{timezone});
 
    my $empre_obj;
    if(not defined $empregado) {
@@ -537,11 +543,12 @@ sub tempo_extra_empregado_dia {
    my $dia       = $par{DateTime};
    unless(defined $dia){
       if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
-         $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
+         $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano})->set_time_zone($self->{timezone});
       } else {
-         $dia = DateTime->today;
+         $dia = DateTime->now->set_time_zone($self->{timezone});
       }
    }
+   $dia->truncate(to => 'day');
 
    my $empre_obj;
    if(not defined $empregado) {
