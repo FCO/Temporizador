@@ -62,7 +62,7 @@ sub apaga_projeto {
 sub novo_projeto {
    my $novo_proj = $gladexml->get_widget("novo_projeto");
    my $proj = $novo_proj->get_text;
-   $temp->{rs_proj}->create({nome => $proj});
+   $temp->{rs_proj}->create({nome => $proj, inicio => DateTime->now});
    my $proj = $novo_proj->set_text("");
    my $arvore = $gladexml->get_widget("projetos_arvore");
    pega_projetos($arvore);
