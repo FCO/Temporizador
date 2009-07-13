@@ -37,10 +37,11 @@ our $temp = temporizador->new("dbi:$conf{banco}:dbname=$conf{dbname}" .
                              );
 
 
-$gladexml = Gtk2::GladeXML->new("Configurador/configurador.glade");
+our $gladexml = Gtk2::GladeXML->new("Configurador/configurador.glade");
 $gladexml->signal_autoconnect_from_package(main);
 my $arvore = $gladexml->get_widget("projetos_arvore");
 $arvore->signal_connect(visibility_notify_event => \&pega_projetos);
+$arvore->signal_connect("cursor-changed" => \&selected);
 Gtk2->main;
 
 sub pega_projetos {
@@ -57,6 +58,25 @@ sub pega_projetos {
    );
    my $cel = Gtk2::CellRendererText->new;
    $tree->append_column($col);
+}
+
+sub selected {
+   my $tree = shift;
+   my ($model, $iter) = $tree->get_selection->get_selected;
+   return unless $iter;
+   my $proj = $model->get ($iter, 0);
+
+   my $tempo = $temp->ultimo_login_projeto(nome => $proj);
+   my $ultimo_login = $gladexml->get_widget("ultimo_login");
+   $ultimo_login->set_text($tempo || "Nunca");
+
+   $tempo = $temp->tempo_total_projeto_dia(projeto => $proj);
+   my $tempo_proj = $gladexml->get_widget("tempo_total_hj");
+   $tempo_proj->set_text($tempo);
+
+   $tempo = $temp->tempo_total_projeto(projeto => $proj);
+   $tempo_proj = $gladexml->get_widget("tempo_total");
+   $tempo_proj->set_text($tempo);
 }
 
 

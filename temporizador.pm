@@ -2,8 +2,8 @@ package temporizador;
 
 use lib "lib";
 use temporizador::Schema;
-use File::Find;
-use Digest::MD5;
+#use File::Find;
+#use Digest::MD5;
 use warnings;
 use DateTime;
 use DateTime::Duration;
@@ -42,6 +42,15 @@ sub get_empregado {
 sub get_projetos {
    my $self = shift;
    my @tmp = $self->{rs_proj}->all
+}
+
+sub ultimo_login_projeto {
+   my $self  = shift;
+   my %pars  = @_;
+   $projeto = $self->{rs_proj}->find(\%pars);
+   my $ult = $projeto->search_related("logins", undef, {order_by => "data DESC"})->first;
+   return unless $ult;
+   $ult->data->dmy("/") . " " . $ult->data->hms;
 }
 
 sub set_projeto {
@@ -344,6 +353,53 @@ sub tempo_projeto_dia {
    "$h:$m:$s"
 }
 
+sub tempo_total_projeto_dia {
+   my $self      = shift;
+   my %par       = @_;
+   my $projeto   = $par{projeto};
+   my $empregado = $par{empregado};
+   my $dia;
+   unless(defined $par{DateTime}){
+      if(exists $par{dia} and exists $par{mes} and exists $par{ano}){
+         $dia = DateTime->new(day => $par{dia}, month => $par{mes}, year => $par{ano});
+      } else {
+         $dia = DateTime->today->set_time_zone("America/Sao_Paulo");
+      }
+   }else{
+      $dia = $par{DateTime};
+   }
+   my %dia = (
+              inicio => $dia->clone->truncate(to => 'day'),
+              fim    => $dia->clone->truncate(to => 'day')->add(days => 1)->subtract(seconds => 1)
+             );
+
+   my $tempo = $self->{rs_proj}->find({nome => $projeto})
+             ->search_related("logins", { -or => [
+                                                  {
+                                                   data   => {
+                                                              '>=' => $dia->clone->ymd,
+                                                              '<' => $dia->clone->add(days => 1)->ymd,
+                                                             }
+                                                  },
+                                                  {
+                                                   logout => {
+                                                              '>=' => $dia->clone->ymd,
+                                                              '<' => $dia->clone->add(days => 1)->ymd,
+                                                             }
+                                                  },
+                                                 ],
+                                        }
+   );
+   my $tempo_total = DateTime::Duration->new;
+   for my $log (map{$_->tempo(%dia)}$tempo->all){
+         $tempo_total += $log->is_negative ? $log * -1 : $log;
+   }
+   return $tempo_total if exists $par{retorno} and $par{retorno} eq "DateTime";
+   ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
+   $s = sprintf "%02d", $s % 60;
+   "$h:$m:$s"
+}
+
 sub tempo_projetos_por_dia {
    my $self      = shift;
    my %par       = @_;
@@ -395,8 +451,6 @@ sub tempo_projetos_por_dia {
             $data_atual{inicio}->add(days => 1);
             $data_atual{fim}   ->add(days => 1);
          }
-         #$dias{$linha->logout->day}->{$linha->projeto->id}->{tempo}
-         #   += $linha->tempo(inicio => $logout, fim => $logoutf);
       } else {
          $dias{$linha->data->day}->{$linha->projeto->id}->{tempo} += $linha->tempo;
       }

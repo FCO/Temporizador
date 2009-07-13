@@ -4,13 +4,13 @@
 <glade-interface>
 
 <widget class="GtkWindow" id="window1">
-  <property name="width_request">597</property>
+  <property name="width_request">658</property>
   <property name="visible">True</property>
   <property name="title" translatable="yes">Configuração do Temporizador</property>
   <property name="type">GTK_WINDOW_TOPLEVEL</property>
   <property name="window_position">GTK_WIN_POS_CENTER</property>
   <property name="modal">True</property>
-  <property name="resizable">True</property>
+  <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
