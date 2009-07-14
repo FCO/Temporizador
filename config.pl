@@ -116,6 +116,17 @@ sub get_timezone {
     $c->stash->{par}   = "timezone";
 }
 
+sub set_tempo_alerta {
+    my $c = shift;
+    $c->stash->{par}   = "tempo_alerta";
+    $c->stash->{valor} = $c->argv->[0] || 0;
+}
+
+sub get_tempo_alerta {
+    my $c = shift;
+    $c->stash->{par}   = "tempo_alerta";
+}
+
 
 
 

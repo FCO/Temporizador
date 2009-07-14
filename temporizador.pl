@@ -56,6 +56,10 @@ unless(exists $conf{icone_off}){
    $conf{icone_off} = "imgs/off.png";
    $mudou++;
 }
+unless(exists $conf{tempo_alerta}){
+   $conf{tempo_alerta} = 30;
+   $mudou++;
+}
 our $temp = temporizador->new("dbi:$conf{banco}:dbname=$conf{dbname}" .
                               (
                                $conf{dbhost}
@@ -232,7 +236,7 @@ sub loginout {
       Glib::Source->remove($timer) if defined $timer;
    }else{
       $retorno = "Hora Atual: " . $temp->login;
-      $timer = Glib::Timeout->add(1000 * 60 * 30, \&timer);
+      $timer = Glib::Timeout->add(1000 * 60 * $conf{tempo_alerta}, \&timer) if $conf{tempo_alerta};
    }
 
 #   $event->set_tooltip_text($temp->get_projeto->nome);
