@@ -24,8 +24,8 @@ if( $conf_file && open $CONF, "<", $conf_file ){
         $linha =~ /^\s*(\w+)\s*:\s*(.*)\s*$/;
         $conf{$1} = $2;
     }
+    close $CONF;
 }
-close $CONF;
 
 my $email = shift;
 $email ||= $conf{user};
