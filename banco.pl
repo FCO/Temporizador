@@ -10,9 +10,9 @@ App::Rad->run;
 sub pre_process {
     my $c = shift;
 
-    $c->load_config("/etc/temporizador.conf");
-    $c->load_config($ENV{HOME} . "/.temporizador.conf");
-    $c->load_config("./.temporizador.conf");
+    eval {$c->load_config("/etc/temporizador.conf")};
+    eval {$c->load_config($ENV{HOME} . "/.temporizador.conf")};
+    eval {$c->load_config("./.temporizador.conf")};
     $c->config->{timezone} ||= "America/Sao_Paulo";
 
     (my $resultset = $0) =~ s{^.*/|\.pl$}{}g;
