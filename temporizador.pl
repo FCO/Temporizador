@@ -77,7 +77,7 @@ unless(exists $conf{user}){
 #com prioridade sobre configuracoes do arquivo 
 #de conf do usuario?
 if($mudou) {
-   open my $CONF, ">", "temporizador.conf" || die "não pode escrever arquivo";
+   open my $CONF, ">", ".temporizador.conf" || die "não pode escrever arquivo";
    for my $set (sort keys %conf){
       print { $CONF } "$set: $conf{$set}$/";
    }
