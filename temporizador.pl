@@ -19,7 +19,6 @@ my $conf_file;
 for my $path (qw|./.|, $ENV{HOME} . "./.", qw|/etc/ /|){
     $conf_file = $path . "temporizador.conf" if -f $path . "temporizador.conf";
 }
-die "temporizador.conf nao encontrado" unless $conf_file;
 if( open $CONF, "<", $conf_file ){
     while(my $linha = <$CONF>){
         $linha =~ /^\s*(\w+)\s*:\s*(.*)\s*$/;
