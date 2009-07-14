@@ -11,6 +11,7 @@ sub pre_process {
     my $c = shift;
 
     $c->load_config("temporizador.conf");
+    $c->config->{timezone} ||= "America/Sao_Paulo";
 
     (my $resultset = $0) =~ s{^.*/|\.pl$}{}g;
     $resultset = ucfirst $resultset;
@@ -88,7 +89,7 @@ sub cria {
     my @cols  = $c->stash->{DB}->result_source->columns;
     for my $col (@cols){
         if($col eq "data" or $col eq "inicio"){
-            $c->options->{$col} = DateTime->now->set_time_zone("America/Sao_Paulo");
+            $c->options->{$col} = DateTime->now->set_time_zone($c->config->{timezone});
         }
     }
     

@@ -105,6 +105,17 @@ sub get_root {
     $c->stash->{par}   = "root";
 }
 
+sub set_timezone {
+    my $c = shift;
+    $c->stash->{par}   = "timezone";
+    $c->stash->{valor} = $c->argv->[0] || "";
+}
+
+sub get_timezone {
+    my $c = shift;
+    $c->stash->{par}   = "timezone";
+}
+
 
 
 

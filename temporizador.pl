@@ -16,7 +16,11 @@ use warnings;
 
 my %conf;
 my $CONF;
-if( open $CONF, "<", "temporizador.conf" ){
+my $conf_file;
+for my $path (qw|./.|, $ENV{HOME} . "/.", qw|/etc/ /|){
+    $conf_file = $path . "temporizador.conf" if -f $path . "temporizador.conf";
+}
+if( open $CONF, "<", $conf_file ){
     while(my $linha = <$CONF>){
         $linha =~ /^\s*(\w+)\s*:\s*(.*)\s*$/;
         $conf{$1} = $2;
@@ -28,8 +32,17 @@ my $email = shift;
 $email ||= $conf{user};
 
 my $mudou = 0;
+unless(exists $conf{root}){
+   ($conf{root} = $0) =~ s{/.*?$}{};
+   $mudou++;
+}
 unless(exists $conf{dbname}){
-   $conf{dbname} = "temporizador.sql";
+   for my $arq ($ENV{HOME}."/temporizador.sql", $conf{root}."/temporizador.sql", qw{temporizador.sql /var/temporizador.sql}){
+      if(-f $arq){
+         $conf{dbname} = $arq;
+         last;
+      }
+   }
    $mudou++;
 }
 unless(exists $conf{banco}){
@@ -54,10 +67,6 @@ our $temp = temporizador->new("dbi:$conf{banco}:dbname=$conf{dbname}" .
                               $conf{dbpass},
                              );
 
-unless(exists $conf{root}){
-   ($conf{root} = $0) =~ s{/.*?$}{};
-   $mudou++;
-}
 unless(exists $conf{user}){
    $email = $temp->{rs_empre}->first->email;
    $conf{user} = $email;
@@ -65,7 +74,7 @@ unless(exists $conf{user}){
 }
 
 if($mudou) {
-   open my $CONF, ">", "temporizador.conf";
+   open my $CONF, ">", "./.temporizador.conf";
    for my $set (sort keys %conf){
       print { $CONF } "$set: $conf{$set}$/";
    }
