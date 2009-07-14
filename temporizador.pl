@@ -74,6 +74,9 @@ unless(exists $conf{user}){
    $mudou++;
 }
 
+#TODO: isso faz sentido? configuracoes do banco
+#com prioridade sobre configuracoes do arquivo 
+#de conf do usuario?
 if($mudou) {
    open my $CONF, ">", $conf_file;
    for my $set (sort keys %conf){
