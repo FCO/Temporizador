@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+use lib "lib";
 use temporizador;
 use Gtk2 -init;
 use Gtk2::GladeXML;
