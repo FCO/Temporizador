@@ -16,7 +16,7 @@ use warnings;
 my %conf;
 my $CONF;
 my $conf_file;
-for my $path (qw|./.|, $ENV{HOME} . "/.", qw|/etc/ /|){
+for my $path (qw|./.|, $ENV{HOME} . "./", qw|/etc/ /|){
     $conf_file = $path . "temporizador.conf" if -f $path . "temporizador.conf";
 }
 die "temporizador.conf nao encontrado" unless $conf_file;
