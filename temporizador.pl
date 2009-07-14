@@ -2,8 +2,7 @@
 
 use Gtk2::TrayIcon;
 use Gtk2::Notify -init, "Temporizador";
-use lib ".";
-use lib "./lib";
+use lib "lib";
 use temporizador;
 use temporizador::Schema;
 #use File::Find;
@@ -51,11 +50,11 @@ unless(exists $conf{banco}){
    $mudou++;
 }
 unless(exists $conf{icone_on}){
-   $conf{icone_on} = "on.png";
+   $conf{icone_on} = "imgs/on.png";
    $mudou++;
 }
 unless(exists $conf{icone_off}){
-   $conf{icone_off} = "off.png";
+   $conf{icone_off} = "imgs/off.png";
    $mudou++;
 }
 our $temp = temporizador->new("dbi:$conf{banco}:dbname=$conf{dbname}" .
