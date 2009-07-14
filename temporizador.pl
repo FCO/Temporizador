@@ -120,12 +120,20 @@ sub click {
    menu($eventbox)     if $evento->button == 3;
 }
 
+
+## menu de exibicao
+## esse menu aparece quando o usuario
+## clica com o botao direito no icone
+## do projeto
 sub menu {
     my $eventbox = shift;
     my $menu = Gtk2::Menu->new();
 
     my $proj_atual = $temp->get_projeto;
 
+    # adiciona tempo atual da atividade como 
+    # primeiro item do menu (apenas se atividade 
+    # estiver sendo registrada no momento)
     my $log = $temp->get_log;
     if($log){
        my ($h, $m, $s) = map {sprintf "%02d", $_} $log->tempo->in_units("hours", "minutes", "seconds");
@@ -134,6 +142,10 @@ sub menu {
        $menu->add($menu_tempo);
     }
 
+    # adiciona projeto atual
+    # TODO: clicar no projeto atual deveria abrir
+    # opcoes do projeto (ou não?)
+    # TODO: deveriam ser tarefas, e não projetos
     my $menu_atual = Gtk2::SeparatorMenuItem->new_with_label("Projeto Atual: " . $proj_atual->nome);
     $menu->add($menu_atual);
 
