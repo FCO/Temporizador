@@ -150,7 +150,7 @@ sub menu {
     $menu_sep = Gtk2::SeparatorMenuItem->new();
     $menu->add($menu_sep);
 
-    my $menu_quit = Gtk2::MenuItem->new_with_label("quit");
+    my $menu_quit = Gtk2::MenuItem->new_with_label("sair");
     $menu_quit->signal_connect(activate => sub{exit});
     $menu->add($menu_quit);
 
