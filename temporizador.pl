@@ -75,7 +75,7 @@ unless(exists $conf{user}){
 }
 
 if($mudou) {
-   open my $CONF, ">", "./.temporizador.conf";
+   open my $CONF, ">", $conf_file;
    for my $set (sort keys %conf){
       print { $CONF } "$set: $conf{$set}$/";
    }
