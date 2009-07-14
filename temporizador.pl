@@ -77,7 +77,7 @@ unless(exists $conf{user}){
 #com prioridade sobre configuracoes do arquivo 
 #de conf do usuario?
 if($mudou) {
-   open my $CONF, ">", $conf_file;
+   open my $CONF, ">", "temporizador.conf" || die "não pode escrever arquivo";
    for my $set (sort keys %conf){
       print { $CONF } "$set: $conf{$set}$/";
    }
@@ -100,19 +100,20 @@ our $EVENT = $event;
 $icon->add($event);
 $icon->show_all;
 
-muda_tooltip();
+tooltip_timer();
 
 # define texto exibido como "tooltip"
 # (aparece quando repousamos o mouse em cima do icone)
 # roda debaixo de um timer
 sub muda_tooltip { 
     our $tooltip_timer;
+    $tooltip_timer = Glib::Timeout->add(1000, \&tooltip_timer);
     my $nome_projeto  = $temp->get_projeto->nome;
 
     my $tempo = 'desativado';
     if (my $log = $temp->get_log) {
-        #$tempo = $log->tempof;
-        $tempo = 'ativado'; # trocar pela linha acima
+        $tempo = $log->tempof;
+        #$tempo = 'ativado'; # trocar pela linha acima
                             # quando o timer tiver funcionando
     }
 
@@ -123,7 +124,9 @@ sub muda_tooltip {
     # atualiza o tooltip uma vez por segundo
     # FIXME: tem algo errado, eu ligo isso e 
     # a máquina parece q vai levantar voo :P
-    #$tooltip_timer = Glib::Timeout->add(1000, \&muda_tooltip);
+}
+sub tooltip_timer {
+   muda_tooltip();
 }
 
 $event->signal_connect('button_release_event', \&click);
@@ -210,8 +213,8 @@ sub muda_projeto {
    my $retorno = logout() if $temp->is_logged_in;
    $retorno .= $/ x 2;
    $temp->set_projeto(id => $proj);
-#   $event->set_tooltip_text($temp->get_projeto->nome);
-   muda_tooltip(); #FIXME: comentar quando muda_tooltip() tiver timer
+   #$event->set_tooltip_text($temp->get_projeto->nome);
+   #muda_tooltip(); #FIXME: comentar quando muda_tooltip() tiver timer
    $retorno .= "Projeto atual: " . $temp->get_projeto->nome;
    Gtk2::Notify->new($temp->get_projeto->nome, $retorno, 25, $event)->show;
    $event->add($images{ $temp->is_logged_in ? "on" : "off"});
@@ -234,7 +237,7 @@ sub loginout {
    }
 
 #   $event->set_tooltip_text($temp->get_projeto->nome);
-   muda_tooltip(); #FIXME: comentar quando muda_tooltip() tiver timer
+   #muda_tooltip(); #FIXME: comentar quando muda_tooltip() tiver timer
 
    Gtk2::Notify->new($temp->get_projeto->nome, $retorno, 25, $event)->show;
 
