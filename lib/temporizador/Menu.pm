@@ -68,7 +68,7 @@ sub new {
     my $menu_quit = Gtk2::MenuItem->new_with_label("sair");
     $menu_quit->signal_connect( activate => sub { exit } );
     $self->add($menu_quit);
-    $self;
+    $self
 }
 
 42
