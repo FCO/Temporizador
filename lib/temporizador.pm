@@ -28,15 +28,20 @@ sub set_empregado {
    my $self  = shift;
    my %pars  = @_;
 
-   for my $chave (keys %pars) {
-      $pars_filtrados{ $chave } = $pars{ $chave } if grep {$_ eq $chave} qw/id cpf email/;
-   }
+   if(keys %pars){
+      for my $chave (keys %pars) {
+         $pars_filtrados{ $chave } = $pars{ $chave } if grep {$_ eq $chave} qw/id cpf email/;
+      }
 
-   $self->{empregado} = $self->{rs_empre}->find(\%pars_filtrados);
+      $self->{empregado} = $self->{rs_empre}->find(\%pars_filtrados);
+   } else {
+      $self->{empregado} = $self->{rs_empre}->first;
+   }
 }
 
 sub get_empregado {
    my $self = shift;
+   $self->set_empregado unless $self->{empregado};
    $self->{empregado}
 }
 
@@ -77,6 +82,7 @@ sub set_projeto {
 
 sub get_projeto {
    my $self = shift;
+   $self->set_projeto unless exists $self->{projeto};
    $self->{projeto}
 }
 
