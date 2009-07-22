@@ -33,9 +33,9 @@ sub new {
    $self->{off_png} = $self->{conf}->config("icone_off") || "imgs/off.png";
    $self->{event}   = Gtk2::EventBox->new;
    $self->{on_img}  = Gtk2::Image->new_from_pixbuf(
-                       Gtk2::Gdk::Pixbuf->new_from_file($self->{on_png}) );
+                       Gtk2::Gdk::Pixbuf->new_from_file($self->{conf}->config("root") . "/" . $self->{on_png}) );
    $self->{off_img} = Gtk2::Image->new_from_pixbuf(
-                       Gtk2::Gdk::Pixbuf->new_from_file($self->{off_png}) );
+                       Gtk2::Gdk::Pixbuf->new_from_file($self->{conf}->config("root") . "/" . $self->{off_png}) );
    $self->{event}->add($self->{temp}->is_logged_in ? $self->{on_img} : $self->{off_img});
    $self->add($self->{event});
    $self->tooltip_timer();
