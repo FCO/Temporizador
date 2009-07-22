@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
-use lib "lib";
+use FindBin;
+use lib "$FindBin::Bin/lib";
 use temporizador::OnOffIcon;
 use temporizador::Config;
 
