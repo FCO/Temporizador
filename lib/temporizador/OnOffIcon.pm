@@ -62,16 +62,17 @@ sub tooltip_timer {
     my $self = shift;
     $self->muda_tooltip();
 }
-#
-#sub timer {
-#    my $event = $EVENT;
-#    if ( my $log = $temp->get_log ) {
-#        my $retorno = $log->tempof;
-#        Gtk2::Notify->new( "Temporizador", $retorno, 25, $event )->show;
-#    }
-#    42;
-#}
-#
+
+sub timer {
+    my $self = shift;
+    my $event = $self->{event};
+    if ( my $log = $self->{temp}->get_log ) {
+        my $retorno = $log->tempof;
+        Gtk2::Notify->new( "Temporizador", $retorno, 25, $event )->show;
+    }
+    42;
+}
+
 sub click {
     my $self     = shift;
     my $eventbox = shift;

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use FindBin;
-use lib "$FindBin::Bin/lib";
+use lib "$FindBin::RealBin/lib";
 use temporizador;
 use Gtk2 -init;
 use Gtk2::GladeXML;
