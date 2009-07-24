@@ -22,7 +22,7 @@ sub load_config {
    return if grep {not -f} @files;
    push @{ $self->{files} }, @files;
    $self->{mudou}++;
-   $self->{mudou}
+   $self;
 }
 
 sub config :lvalue {
@@ -63,6 +63,7 @@ sub save_config {
          print { $FILE } "$name: ", $self->{conf}->{$name}, $/;
       }
    }
+   $self;
 }
 
 
