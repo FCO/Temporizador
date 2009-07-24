@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+use lib 'lib';
+use temporizador::Config;
 
 use App::Rad;
 App::Rad->run;
@@ -8,24 +10,29 @@ sub post_process {
     my $c = shift;
     my %conf;
     return $c->post_process unless $c->cmd =~ /^[sg]et_/;
-    open $CONF, "<", "temporizador.conf";
-    if(defined $CONF){
-        while(my $linha = <$CONF>){
-            $linha =~ /^\s*(\w+)\s*:\s*(.*)\s*$/;
-            $conf{$1} = $2;
-        }
-    }
-    close $CONF;
-    if(exists $c->stash->{valor}){
-        $conf{$c->stash->{par}} = $c->stash->{valor};
-        open $CONF, ">", "temporizador.conf";
-        for my $nome(sort keys %conf){
-            print { $CONF } "$nome: $conf{$nome}$/";
-        }
-        close $CONF;
-    } else {
-        print $conf{$c->stash->{par}}, $/;
-    }
+    
+    my $conf = temporizador::Config->new;
+    $conf->load_config('.temporizador.conf');
+    $conf->config($c->stash->{par}) = $c->stash->{valor};
+    $conf->save_config('.temporizador.conf');
+#    open $CONF, "<", "temporizador.conf";
+#    if(defined $CONF){
+#        while(my $linha = <$CONF>){
+#            $linha =~ /^\s*(\w+)\s*:\s*(.*)\s*$/;
+#            $conf{$1} = $2;
+#        }
+#    }
+#    close $CONF;
+#    if(exists $c->stash->{valor}){
+#        $conf{$c->stash->{par}} = $c->stash->{valor};
+#        open $CONF, ">", "temporizador.conf";
+#        for my $nome(sort keys %conf){
+#            print { $CONF } "$nome: $conf{$nome}$/";
+#        }
+#        close $CONF;
+#    } else {
+#        print $conf{$c->stash->{par}}, $/;
+#    }
 }
 
 sub set_user {
