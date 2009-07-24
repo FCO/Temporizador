@@ -13,8 +13,16 @@ sub post_process {
     
     my $conf = temporizador::Config->new;
     $conf->load_config('.temporizador.conf');
-    $conf->config($c->stash->{par}) = $c->stash->{valor};
-    $conf->save_config('.temporizador.conf');
+    $par = $c->stash->{par};
+    if (exists $c->stash->{valor}) {
+        my $val = $c->stash->{valor};
+        $conf->config($par) = $val;
+        $conf->save_config('.temporizador.conf');
+        print "configuracoes atualizadas com sucesso ( $par => $val )\n";
+    }
+    else {
+        print $conf->config($par) . "\n";
+    }
 #    open $CONF, "<", "temporizador.conf";
 #    if(defined $CONF){
 #        while(my $linha = <$CONF>){
