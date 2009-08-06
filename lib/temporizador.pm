@@ -11,7 +11,10 @@ use DateTime::Duration;
 sub new {
    my $class   = shift;
    my $connect = shift;
-   my $schema  = temporizador::Schema->connection($connect, @_);
+   my $dbstr   = shift;
+   my $dbpass  = shift;
+   my %pars    = @_;
+   my $schema  = temporizador::Schema->connection($connect, $dbstr, $dbpass);
    my $hash = {
                rs_dir   => $schema->resultset('Dir')      ,
                rs_arq   => $schema->resultset('Arq')      ,
@@ -22,6 +25,16 @@ sub new {
                timezone => "America/Sao_Paulo",
               };
    my $self = bless $hash, $class;
+   $self->{logout_on_destroy} = $pars{logout_on_destroy} || 0;
+   $self
+}
+
+sub DESTROY {
+   my $self = shift;
+   if($self->{logout_on_destroy}){
+      print "Loging out...$/";
+      $self->logout;
+   }
 }
 
 sub set_empregado {

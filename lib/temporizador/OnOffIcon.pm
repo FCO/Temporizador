@@ -27,6 +27,7 @@ sub new {
                                                     $connect_string,
                                                     $self->{conf}->config("dbuser"),
                                                     $self->{conf}->config("dbpass"),
+                                                    logout_on_destroy => $pars{logout_on_destroy},
                                                    );
    die "conf é obrigatorio" unless $self->{conf} and ref $self->{conf} eq "temporizador::Config";
    $self->{on_png}  = $self->{conf}->config("icone_on")  || "imgs/on.png";
