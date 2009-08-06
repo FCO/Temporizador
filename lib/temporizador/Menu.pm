@@ -30,16 +30,9 @@ sub new {
 
     my $proj_atual = $self->{temp}->get_projeto;
 
-    my $log = $self->{temp}->get_log;
-    if ($log) {
-        my ( $h, $m, $s ) =
-          map { sprintf "%02d", $_ }
-          $log->tempo->in_units( "hours", "minutes", "seconds" );
-        $s = sprintf "%02d", $s % 60;
-        my $menu_tempo =
-          Gtk2::SeparatorMenuItem->new_with_label( join ":", $h, $m, $s );
-        $self->add($menu_tempo);
-    }
+    my $menu_tempo =
+      Gtk2::SeparatorMenuItem->new_with_label("Tempo Hoje: " . $self->{temp}->tempo_projeto_dia);
+    $self->add($menu_tempo);
 
     my $menu_atual = Gtk2::SeparatorMenuItem->new_with_label(
         "Projeto Atual: " . $proj_atual->nome );
