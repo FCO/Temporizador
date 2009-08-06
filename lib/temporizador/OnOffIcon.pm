@@ -22,6 +22,14 @@ sub new {
    #my $self  = bless $class->SUPER::new({%pars}), $class;
    
    $self->{conf} = $pars{conf};
+
+   my $dbtype = $self->{conf}->config("banco");
+   my $dbname = $self->{conf}->config("dbname");
+   (my $root   = $0) =~ s|/.*?$|/|;
+   die qq|Tipo de banco não configurado (${root}config.pl set_banco TIPO_DO_BANCO (padrão: SQLite))$/| unless $dbtype;
+   die qq|Caminho para o banco não encontrado (${root}config.pl set_dbname CAMINHO (padrão: ${root}temporizador.sql))$/|
+      unless $dbname;
+
    my $connect_string = "dbi:" . $self->{conf}->config("banco") . ":dbname=" . $self->{conf}->config("dbname");
    $self->{temp} = $pars{temp} || temporizador->new(
                                                     $connect_string,
