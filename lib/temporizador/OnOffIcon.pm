@@ -13,138 +13,75 @@ use temporizador::Menu;
 #use base "Gtk2::TrayIcon";
 
 use Glib::Object::Subclass
-    Gtk2::TrayIcon::;
+    Gtk2::TrayIcon::, signals => {
+                                    'clicked_bt1' => {},
+                                    'clicked_bt2' => {},
+                                    'clicked_bt3' => {},
+                                    'on'          => {},
+                                    'off'         => {},
+                                 }
+    ;
 
 sub new {
    my $class = shift;
    my %pars  = @_;
    my $self = Glib::Object::new (__PACKAGE__);
-   #my $self  = bless $class->SUPER::new({%pars}), $class;
-   
-   $self->{conf} = $pars{conf};
-   my $connect_string = "dbi:" . $self->{conf}->config("banco") . ":dbname=" . $self->{conf}->config("dbname");
-   $self->{temp} = $pars{temp} || temporizador->new(
-                                                    $connect_string,
-                                                    $self->{conf}->config("dbuser"),
-                                                    $self->{conf}->config("dbpass"),
-                                                    logout_on_destroy => $pars{logout_on_destroy},
-                                                   );
-   die "conf é obrigatorio" unless $self->{conf} and ref $self->{conf} eq "temporizador::Config";
-   $self->{on_png}  = $self->{conf}->config("icone_on")  || "imgs/on.png";
-   $self->{off_png} = $self->{conf}->config("icone_off") || "imgs/off.png";
+   $self->{on_png}  = $pars{on_icon};
+   $self->{off_png} = $pars{off_icon};
    $self->{event}   = Gtk2::EventBox->new;
    $self->{on_img}  = Gtk2::Image->new_from_pixbuf(
                        Gtk2::Gdk::Pixbuf->new_from_file($self->{on_png}) );
    $self->{off_img} = Gtk2::Image->new_from_pixbuf(
                        Gtk2::Gdk::Pixbuf->new_from_file($self->{off_png}) );
-   $self->{event}->add($self->{temp}->is_logged_in ? $self->{on_img} : $self->{off_img});
    $self->add($self->{event});
-   $self->tooltip_timer();
-   $self->{event}->signal_connect( 'button_release_event', sub { $self->click(@_) } );
+   $self->{tooltip} = Gtk2::Tooltips->new;
+   $self->{event}->signal_connect( 'button_release_event', sub { $self->clicked(@_) } );
    $self;
 }
 
-sub muda_tooltip {
+sub set_tooltip {
+   my $self = shift;
+   my $proj = shift;
+   my $time = shift;
+   $time = defined $time ? $time : "desativado";
+   
+   $self->{tooltip}->set_tip($self, "$proj ($time)");
+}
+
+sub clicked {
+   my $self     = shift;
+   my $eventbox = shift;
+   my $evento   = shift;
+
+   $self->signal_emit("clicked_bt" . $evento->button);
+}
+
+sub on {
     my $self = shift;
-    $self->{tooltip_timer} = Glib::Timeout->add( 1000, sub { $self->tooltip_timer(@_) } );
-    my $projeto = $self->{temp}->get_projeto;
-    return unless defined $projeto;
-    my $nome_projeto = $projeto->nome;
-
-    my $tempo = 'desativado';
-    if ( my $log = $self->{temp}->get_log ) {
-        $tempo = $log->tempof;
-    }
-
-    $self->{event}->set_tooltip_text( ' ' . $nome_projeto . ' (' . $tempo . ') ' );
+    $self->{event}->remove($self->{atual_img}) if $self->{atual_img};
+    $self->{atual_img} = $self->{on_img};
+    $self->{event}->add($self->{atual_img});
+    $self->{state} = 1;
+    my $ret = $self->show_all;
+    $self->signal_emit("on");
+    $ret
 }
 
-sub tooltip_timer {
+sub off {
     my $self = shift;
-    $self->muda_tooltip();
-}
-#
-#sub timer {
-#    my $event = $EVENT;
-#    if ( my $log = $temp->get_log ) {
-#        my $retorno = $log->tempof;
-#        Gtk2::Notify->new( "Temporizador", $retorno, 25, $event )->show;
-#    }
-#    42;
-#}
-#
-sub click {
-    my $self     = shift;
-    my $eventbox = shift;
-    my $evento   = shift;
-
-    $self->loginout($eventbox) if $evento->button == 1;
-    $self->menu($eventbox)     if $evento->button == 3;
+    $self->{event}->remove($self->{atual_img}) if $self->{atual_img};
+    $self->{atual_img} = $self->{off_img};
+    $self->{event}->add($self->{atual_img});
+    $self->{state} = 0;
+    my $ret = $self->show_all;
+    $self->signal_emit("off");
+    $ret
 }
 
-sub menu {
-    my $self = shift;
-    my $menu = temporizador::Menu->new(conf => $self->{conf}, temp => $self->{temp});
-    $menu->signal_connect("selected_project" => sub { shift; $self->muda_projeto( shift ) } );
-    $menu->show_all;
-    no warnings;
-    $menu->popup( undef, undef, undef, 3, undef, undef );
+sub get_status {
+   my $self = shift;
+   $self->{status};
 }
 
-sub muda_projeto {
-    my $self  = shift;
-    my $proj  = shift;
-    my $event = $self->{event};
-
-    eval { $event->remove( $self->{off_img} ) };
-    eval { $event->remove( $self->{on_img}  ) };
-    my $old_proj = $self->{temp}->get_projeto->nome;
-    my $retorno = $self->logout() if $self->{temp}->is_logged_in;
-    $retorno .= $/ x 2;
-    $self->{temp}->set_projeto( id => $proj );
-
-    $retorno .= "Projeto atual: " . $self->{temp}->get_projeto->nome;
-    Gtk2::Notify->new( $self->{temp}->get_projeto->nome, $retorno, 25, $event )->show;
-    $event->add( $self->{temp}->is_logged_in ? $self->{on_img} : $self->{off_img} );
-    $self->show_all;
-}
-
-sub loginout {
-    my $self  = shift;
-    my $event = shift;
-
-    my $retorno;
-    if ( $self->{temp}->is_logged_in ) {
-        $retorno = $self->logout();
-        Glib::Source->remove($self->{timer}) if defined $self->{timer};
-    }
-    else {
-        $retorno = "Hora Atual: " . $self->{temp}->login;
-        $self->{timer} = Glib::Timeout->add( 1000 * 60 * $self->{conf}->config("tempo_alerta"), sub { $self->timer(@_) } )
-          if $self->{conf}->config("tempo_alerta");
-    }
-
-    Gtk2::Notify->new( $self->{temp}->get_projeto->nome, $retorno, 25, $event )->show;
-
-    $event->remove( $self->{temp}->is_logged_in ? $self->{off_img} : $self->{on_img}  );
-    $event->add( $self->{temp}->is_logged_in    ? $self->{on_img}  : $self->{off_img} );
-    $self->show_all;
-}
-
-sub logout {
-    my $self = shift;
-
-    my $ult_proj = $self->{temp}->get_projeto->nome;
-    my $tempo_hj = $self->{temp}->tempo_empregado_dia;
-    my $tempophj = $self->{temp}->tempo_projeto_dia;
-    my $tempo    = $self->{temp}->logout;
-    my $return;
-    $return .= qq#$ult_proj deslogado:$/$/#;
-    $return .= qq#TEMPO: $tempo$/#;
-    $return .= qq#Tempo hoje $ult_proj: $tempophj$/#;
-    $return .= qq#Tempo hoje total: $tempo_hj$/#;
-
-    $return;
-}
 
 42

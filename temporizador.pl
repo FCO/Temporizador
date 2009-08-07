@@ -4,7 +4,7 @@ use App::Rad;
 App::Rad->run;
 
 use lib "lib";
-use temporizador::OnOffIcon;
+use temporizador::GUI;
 use temporizador::Config;
 
 sub default {
@@ -15,8 +15,10 @@ sub default {
    $cfg->load_config("./.temporizador.conf");
    $cfg->load_config("/etc/temporizador.conf");
    
+   my $logout_on_destroy = $c->options->{logout-on-destroy};
+   $logout_on_destroy = defined $logout_on_destroy ? $logout_on_destroy : 1;
    
    Gtk2->init;
-   temporizador::OnOffIcon->new(conf => $cfg, logout_on_destroy => $c->options->{logout-on-destroy} || 0)->show_all;
+   temporizador::GUI->new(conf => $cfg, logout_on_destroy => $logout_on_destroy)->show_all;
    Gtk2->main;
 }
