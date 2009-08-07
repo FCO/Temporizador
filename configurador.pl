@@ -1,13 +1,14 @@
 #!/usr/bin/perl
 
-use lib "lib";
+use FindBin;
+use lib "$FindBin::RealBin/lib";
 use temporizador;
 use Gtk2 -init;
 use Gtk2::GladeXML;
 
 my %conf;
 my $CONF;
-if( open $CONF, "<", "temporizador.conf" ){
+if( open $CONF, "<", ".temporizador.conf" ){
     while(my $linha = <$CONF>){
         $linha =~ /^\s*(\w+)\s*:\s*(.*)\s*$/;
         $conf{$1} = $2;
@@ -38,7 +39,7 @@ our $temp = temporizador->new("dbi:$conf{banco}:dbname=$conf{dbname}" .
                              );
 
 
-our $gladexml = Gtk2::GladeXML->new("Configurador/configurador.glade");
+our $gladexml = Gtk2::GladeXML->new("$FindBin::Bin/Configurador/configurador.glade");
 $gladexml->signal_autoconnect_from_package(main);
 my $janela = $gladexml->get_widget("window1");
 my $arvore = $gladexml->get_widget("projetos_arvore") || die;
