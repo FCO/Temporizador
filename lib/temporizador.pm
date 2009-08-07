@@ -22,7 +22,7 @@ sub new {
                rs_proj  => $schema->resultset('Projeto')  ,
                rs_login => $schema->resultset('Login')    ,
                rs_empre => $schema->resultset('Empregado'),
-               timezone => "America/Sao_Paulo",
+               timezone => "local",
               };
    my $self = bless $hash, $class;
    $self->{logout_on_destroy} = $pars{logout_on_destroy} || 0;
