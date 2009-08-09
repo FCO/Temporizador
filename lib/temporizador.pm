@@ -521,8 +521,8 @@ sub horarios_projeto_mes {
    my $logs = $empre_obj->search_related("logins",
                                          {
                                           data => {
-                                                   '>=' => $prim->ymd,
-                                                   '<=' => $ulti->ymd
+                                                   '>=' => $prim,
+                                                   '<=' => $ulti,
                                                   },
                                           projeto => $proj_obj->id
                                          }
