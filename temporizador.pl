@@ -30,6 +30,31 @@ sub pre_process {
                                    );
 
 }
+
+sub post_process {
+   my $c = shift;
+   if(not ref $c->{output}){
+      print $c->{output}, $/;
+   } elsif (ref $c->{output} eq "ARRAY") {
+      my $format = _format($c->{output});
+      for my $elem (@{ $c->{output} }){
+         printf $format, @$elem;
+      }
+   } else {
+      warn "Sorry, I don't know what to do with this data..."
+   }
+}
+
+sub _format {
+   my $table = shift;
+   for my $line (@$table){
+      for my $col (0 .. $#$line){
+         $sizes[$col] = $sizes[$col] > length $line->[$col] ? $sizes[$col] : length $line->[$col];
+      }
+   }
+   @sizes = map {$_ < 3 ? 3 : $_} @sizes;
+   "| " . (join " | ", map {"\% ${_}s"} @sizes) . " |$/";
+}
    
 sub default {
    my $c = shift;
@@ -77,6 +102,17 @@ sub start {
 sub stop {
    my $c = shift;
    $c->stash->{temp}->logout;
+}
+
+sub show_times {
+   my $c = shift;
+   [
+    $c->stash->{temp}
+       ->horarios_projeto_mes(
+                              mes     => $c->options->{month},
+                              projeto => $c->options->{project},
+                             )
+   ]
 }
 
 

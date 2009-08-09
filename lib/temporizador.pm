@@ -482,6 +482,63 @@ sub tempo_projetos_por_dia {
    \%dias
 }
 
+sub horarios_projeto_mes {
+   require DateTime;
+   my $self      = shift;
+   my %par       = @_;
+   my $empregado = $par{empregado};
+   my $projeto   = $par{projeto};
+   my $mes       = $par{mes} || DateTime->now->set_time_zone($self->{timezone})->month;
+   my $ano       = $par{ano} || DateTime->now->set_time_zone($self->{timezone})->year;
+   my $prim = DateTime->new(day => 1, month => $mes, year => $ano)->set_time_zone($self->{timezone});
+   my $ulti = DateTime->last_day_of_month(month => $mes, year => $ano)->add(days => 1)->subtract( seconds => 1 );;
+   $ulti = $ulti > DateTime->now ? DateTime->now : $ulti;
+   $ulti->set_time_zone($self->{timezone});
+
+   my($empre_obj, $proj_obj);
+   if(not defined $projeto) {
+      $proj_obj = $self->get_projeto;
+   } else {
+      if($projeto =~ /^\d+$/){
+         $proj_obj = $self->{rs_proj}->find($projeto) || die "Projeto \"$projeto\" não encontrado...$/";
+      } else {
+         $proj_obj = $self->{rs_proj}->find({nome => $projeto}) || die "Projeto \"$projeto\" não encontrado...$/";
+      }
+   }
+   if(not defined $empregado) {
+      $empre_obj = $self->get_empregado;
+   } else {
+      if($empregado =~ /^\d+$/){
+         $empre_obj = $self->{rs_empre}->find($empregado);
+      }elsif($empregado =~ /\@/){
+         $empre_obj = $self->{rs_empre}->find({email => $empregado});
+      }elsif($empregado =~ /^\d{3}\.\d{3}\.\d{3}-\d{2}$/){
+         $empre_obj = $self->{rs_empre}->find({cpf => $empregado});
+      }else {
+         $empre_obj = $self->{rs_empre}->find({nome => $empregado});
+      }
+   }
+   my $logs = $empre_obj->search_related("logins",
+                                         {
+                                          data => {
+                                                   '>=' => $prim->ymd,
+                                                   '<=' => $ulti->ymd
+                                                  },
+                                          projeto => $proj_obj->id
+                                         }
+                                        );
+   my %logs;
+   for my $log ($logs->all){
+      push @{ $logs{$log->data->day} }, $log->data->hms, ($log->logout || DateTime->now)->hms;
+   }
+   my @table;
+   for my $day ($prim->day ... $ulti->day){
+      push @table, [$day, @{ $logs{$day} }] if exists $logs{$day};
+      push @table, [$day] unless exists $logs{$day};
+   }
+   @table;
+}
+
 sub tempo_empregado_mes {
    my $self      = shift;
    my %par       = @_;
