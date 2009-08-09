@@ -529,7 +529,38 @@ sub horarios_projeto_mes {
                                         );
    my %logs;
    for my $log ($logs->all){
-      push @{ $logs{$log->data->day} }, $log->data->hms, ($log->logout || DateTime->now)->hms;
+      if($log->data->day == $log->logout->day){
+         push @{ $logs{$log->data->day} }, $log->data->hms, ($log->logout || DateTime->now)->hms;
+      } else {
+         for my $day($log->data->day ... $log->logout->day){
+            my($ini, $fim);
+            if($day == $log->data->day){
+               $ini = $log->data;
+            } else {
+               $ini = DateTime->new(
+                                    year   => $log->data->year ,
+                                    month  => $log->data->month,
+                                    day    => $day             ,
+                                    hour   => 0                ,
+                                    minute => 0                ,
+                                    second => 0                ,
+                                   );
+            }
+            if($day == $log->logout->day){
+               $fim = $log->logout;
+            } else {
+               $fim = DateTime->new(
+                                    year   => $log->logout->year ,
+                                    month  => $log->logout->month,
+                                    day    => $day               ,
+                                    hour   => 23                 ,
+                                    minute => 59                 ,
+                                    second => 59                 ,
+                                   );
+            }
+            push @{ $logs{$day} }, $ini->hms, $fim->hms;
+         }
+      }
    }
    my @table;
    for my $day ($prim->day ... $ulti->day){
