@@ -45,7 +45,6 @@ sub new {
    $self->{icon}->signal_connect("clicked_bt1" => sub {$self->login_or_logout});
    $self->{icon}->signal_connect("clicked_bt3" => sub {$self->menu});
    $self->{temp}->signal_connect("change_tooltip" => sub {$self->{icon}->set_tooltip(@_[1, 2])});
-   #$self->{temp}->signal_connect("notify_timer" => sub { print "SINAL!!! (@_)$/" });
    $self->{temp}->signal_connect("notify_timer" => sub {
          shift;
          my $projeto = shift;
@@ -98,7 +97,13 @@ sub show_all {
 
 sub menu {
     my $self = shift;
-    my $menu = temporizador::Menu->new(conf => $self->{conf}, temp => $self->{temp});
+    my $menu = temporizador::Menu->new(
+                                       proj_atual_nome   => $self->{temp}->get_projeto->nome,
+                                       proj_atual_id     => $self->{temp}->get_projeto->id  ,
+                                       tempo_projeto_dia => $self->{temp}->tempo_projeto_dia,
+                                       base              => $self->{conf}->config('root')   ,
+                                       projetos        => {map {($_->nome => $_->id)} $self->{temp}->get_projetos},
+                                      );
     $menu->signal_connect("selected_project" => sub { shift; $self->muda_projeto( shift ) } );
     $menu->show_all;
     no warnings;

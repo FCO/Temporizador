@@ -3,10 +3,9 @@
 use App::Rad;
 App::Rad->run;
 
-use FindBin;
-use lib "$FindBin::Bin/lib";
+use FindBin qw($Bin);
+use lib "$Bin/lib";
 use temporizador::GUI;
-#use temporizador::OnOffIcon;
 use temporizador::Config;
 
 sub default {

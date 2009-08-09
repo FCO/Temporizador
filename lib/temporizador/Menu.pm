@@ -19,33 +19,22 @@ sub new {
     my $self = Glib::Object::new (__PACKAGE__);
     #my $self  = bless $class->SUPER::new({%pars}), $class;
     
-    $self->{conf} = $pars{conf};
-    my $connect_string = "dbi:" . $self->{conf}->config("banco") . ":dbname=" . $self->{conf}->config("dbname");
-    $self->{temp} = $pars{temp} || temporizador->new(
-                                                     $connect_string,
-                                                     $self->{conf}->config("dbuser"),
-                                                     $self->{conf}->config("dbpass"),
-                                                    );
-    die "conf é obrigatorio" unless $self->{conf} and ref $self->{conf} eq "temporizador::Config";
-
-    my $proj_atual = $self->{temp}->get_projeto;
-
     my $menu_tempo =
-      Gtk2::SeparatorMenuItem->new_with_label("Tempo Hoje: " . $self->{temp}->tempo_projeto_dia);
+      Gtk2::SeparatorMenuItem->new_with_label("Tempo Hoje: " . $pars{tempo_projeto_dia});
     $self->add($menu_tempo);
 
     my $menu_atual = Gtk2::SeparatorMenuItem->new_with_label(
-        "Projeto Atual: " . $proj_atual->nome );
+        "Projeto Atual: " . $pars{proj_atual_nome} );
     $self->add($menu_atual);
 
     my $menu_sep = Gtk2::SeparatorMenuItem->new();
-    $self->add($menu_sep) if $self->{temp}->get_projetos > 1;
+    $self->add($menu_sep) if keys %{ $pars{projetos} } > 1;
 
-    for my $proj ( $self->{temp}->get_projetos ) {
-        next if $proj_atual->id == $proj->id;
-        my $menu_proj = Gtk2::MenuItem->new_with_label( $proj->nome );
+    for my $proj ( sort keys %{ $pars{projetos} } ) {
+        next if $pars{proj_atual_id} == $pars{projetos}->{$proj};
+        my $menu_proj = Gtk2::MenuItem->new_with_label( $proj );
         $menu_proj->signal_connect(
-            activate => sub { $self->signal_emit( "selected_project", $proj->id ) } );
+            activate => sub { $self->signal_emit( "selected_project", $pars{projetos}->{$proj} ) } );
         $self->add($menu_proj);
     }
 
@@ -53,7 +42,7 @@ sub new {
     $self->add($menu_sep);
 
     my $menu_config = Gtk2::MenuItem->new_with_label("Configuração");
-    my $base = $self->{conf}->config("root");
+    my $base = $pars{base};
     $menu_config->signal_connect( activate => sub { `${base}/configurador.pl` }
     );
     $self->add($menu_config);
