@@ -109,13 +109,80 @@ sub show_times {
    [
     $c->stash->{temp}
        ->horarios_projeto_mes(
-                              mes     => $c->options->{month},
+                              mes     => $c->options->{month}  ,
+                              ano     => $c->options->{year}   ,
                               projeto => $c->options->{project},
                              )
    ]
 }
 
+sub write_xls {
+   my $c = shift;
+   require Spreadsheet::SimpleExcel;
+   my $data = show_times($c);
+   my $cols = 0;
+   my $day;
+   for my $line (@$data){
+      $cols = $cols <= @$line ? @$line : $cols;
+   }
+   for my $line (@$data){
+      if($c->options->{month} and $c->options->{year}){
+         $day = DateTime->new(day => $line->[0], month => $c->options->{month}, year => $c->options->{year});
+      } elsif ($c->options->{month}) {
+         $day = DateTime->new(day => $line->[0], month => $c->options->{month}, year => DateTime->now->year);
+      } elsif ($c->options->{year}) {
+         $day = DateTime->new(day => $line->[0], month => DateTime->now->month, year => $c->options->{year});
+      } else {
+         $day = DateTime->new(day => $line->[0], month => DateTime->now->month, year => DateTime->now->year);
+      }
+      $day->set_time_zone($c->stash->{temp}->{timezone});
+      $line->[$cols] =
+         $c->stash->{temp}
+            ->tempo_projeto_dia(
+                                DateTime => $day                  ,
+                                projeto  => $c->options->{project},
+                               );
+   }
+   
+   my $excel = Spreadsheet::SimpleExcel->new;
+   my @title = (qw/Dia/, ((qw/Entrada Saida/) x (($cols - 1) / 2)), qq/Total Diario/);
+   my $horas = $c->stash->{temp}
+                    ->tempo_projeto_mes(
+                                        "return" => "DateTime",
+                                        mes      => $c->options->{month},
+                                        ano      => $c->options->{year},
+                                        projeto  => $c->options->{project},
+                                       );
+   my ($h, $m, $s) = map {sprintf "%02d", $_} $horas->in_units("hours", "minutes", "seconds");
+   $s = sprintf "%02d", $s % 60;
+   my $horaf = "$h:$m:$s";
 
+   push @$data, [
+                 ("") x ($cols - 1),
+                 "Total",
+                 $horaf
+                ];
+   push @$data, [ ("") x ($cols - 1), "Valor/hora", $c->stash->{cfg}->config("valor_por_hora") ||= 1 ];
+   push @$data, [ ("") x ($cols - 1), "Valor do mes", $c->stash->{cfg}->config("valor_por_hora") * $horas->hours];
+   $excel->add_worksheet(
+                         my $name = $day->month_abbr
+                         . " "
+                         . $day->year,
+                         {
+                          -headers => \@title,
+                          -data => $data
+                         }
+                        );
+   #$excel->set_data_format($name,[("s") x ($cols + 1)]);
+   my $filename;
+   if(exists $c->options->{filename}) {
+      ($filename = $c->options->{filename}) =~ s/(.*)(?:\.xls)?/$1.xls/;
+   } else {
+      $filename = lc($day->month_abbr) . "_" . $day->year . ".xls";
+   }
+   $excel->output_to_file($filename) or die $excel->errstr();
+   "Created \"$filename\""
+}
 
 
 

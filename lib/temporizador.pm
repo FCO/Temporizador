@@ -331,10 +331,22 @@ sub tempo_projeto_dia {
    $dia->set_time_zone($self->{timezone})->truncate(to => 'day');
    my %dia = (
               inicio => $dia->clone->truncate(to => 'day'),
-              fim    => $dia->clone->truncate(to => 'day')->add(days => 1)->subtract(seconds => 1)
+              fim    => $dia->clone->truncate(to => 'day')
+                           ->add(days => 1)
+                           ->subtract(seconds => 1),
              );
 
-   my $empre_obj;
+   my($empre_obj, $proj_obj);
+   if(not defined $projeto) {
+      $proj_obj = $self->get_projeto;
+   } else {
+      if($projeto =~ /^\d+$/){
+         $proj_obj = $self->{rs_proj}->find($projeto) || die "Projeto \"$projeto\" não encontrado...$/";
+      } else {
+         $proj_obj = $self->{rs_proj}->find({nome => $projeto}) || die "Projeto \"$projeto\" não encontrado...$/";
+      }
+   }
+
    if(not defined $empregado) {
       $empre_obj = $self->get_empregado;
    } else {
@@ -348,29 +360,38 @@ sub tempo_projeto_dia {
          $empre_obj = $self->{rs_empre}->find({nome => $empregado});
       }
    }
-   my $tempo = $empre_obj->search_related("logins", { -or => [
-                                                              {
-                                                               data   => {
-                                                                          '>=' => $dia->clone->ymd,
-                                                                          '<' => $dia->clone->add(days => 1)->ymd,
-                                                                         }
-                                                              },
-                                                              {
-                                                               logout => {
-                                                                          '>=' => $dia->clone->ymd,
-                                                                          '<' => $dia->clone->add(days => 1)->ymd,
-                                                                         }
-                                                              },
-                                                             ],
-                                                     projeto => $projeto || $self->get_projeto->id
-                                                    }
+   my $logs = $empre_obj->search_related("logins", {
+                                                    -or => [
+                                                             {
+                                                              data   => {
+                                                                         '>=' => $dia{inicio}->ymd
+                                                                                 . " "
+                                                                                 . $dia{inicio}->hms,
+                                                                         '<=' => $dia{fim}->ymd
+                                                                                 . " "
+                                                                                 . $dia{fim}->hms,
+                                                                        }
+                                                             },
+                                                             {
+                                                              logout => {
+                                                                         '>=' => $dia{inicio}->ymd
+                                                                                 . " "
+                                                                                 . $dia{inicio}->hms,
+                                                                         '<=' => $dia{fim}->ymd
+                                                                                 . " "
+                                                                                 . $dia{fim}->hms,
+                                                                        }
+                                                             },
+                                                           ],
+                                                    projeto => $proj_obj->id,
+                                                   }
    );
    my $tempo_total = DateTime::Duration->new;
-   for my $log (map{$_->tempo(%dia)}$tempo->all){
-         $tempo_total += $log->is_negative ? $log * -1 : $log;
+   for my $tempo ($logs->all){
+      $tempo_total += $tempo->tempo(%dia);
    }
    return $tempo_total if exists $par{retorno} and $par{retorno} eq "DateTime";
-   ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
+   my ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
    $s = sprintf "%02d", $s % 60;
    "$h:$m:$s"
 }
@@ -400,14 +421,22 @@ sub tempo_total_projeto_dia {
              ->search_related("logins", { -or => [
                                                   {
                                                    data   => {
-                                                              '>=' => $dia->clone->ymd,
-                                                              '<' => $dia->clone->add(days => 1)->ymd,
+                                                              '>=' => $dia{inicio}->ymd
+                                                                      . " "
+                                                                      . $dia{inicio}->hms,
+                                                              '<=' => $dia{fim}->ymd
+                                                                      . " "
+                                                                      . $dia{fim}->hms,
                                                              }
                                                   },
                                                   {
                                                    logout => {
-                                                              '>=' => $dia->clone->ymd,
-                                                              '<' => $dia->clone->add(days => 1)->ymd,
+                                                              '>=' => $dia{inicio}->ymd
+                                                                      . " "
+                                                                      . $dia{inicio}->hms,
+                                                              '<=' => $dia{fim}->ymd
+                                                                      . " "
+                                                                      . $dia{fim}->hms,
                                                              }
                                                   },
                                                  ],
@@ -568,6 +597,44 @@ sub horarios_projeto_mes {
       push @table, [$day] unless exists $logs{$day};
    }
    @table;
+}
+
+sub tempo_projeto_mes {
+   my $self      = shift;
+   my %par       = @_;
+   my $projeto    = $par{projeto};
+   my $mes       = $par{mes} || DateTime->now->set_time_zone($self->{timezone})->month;
+   my $ano       = $par{ano} || DateTime->now->set_time_zone($self->{timezone})->year;
+   my $prim = DateTime->new(day => 1, month => $mes, year => $ano)->set_time_zone($self->{timezone});
+   my $ulti = DateTime->last_day_of_month(month => $mes, year => $ano)->add(days => 1)->subtract( seconds => 1 );;
+   $ulti = $ulti > DateTime->now ? DateTime->now : $ulti;
+   $ulti->set_time_zone($self->{timezone});
+
+   my $proj_obj;
+   if(not defined $projeto) {
+      $proj_obj = $self->get_projeto;
+   } else {
+      if($projeto =~ /^\d+$/){
+         $proj_obj = $self->{rs_proj}->find($projeto) || die "Projeto \"$projeto\" não encontrado...$/";
+      } else {
+         $proj_obj = $self->{rs_proj}->find({nome => $projeto}) || die "Projeto \"$projeto\" não encontrado...$/";
+      }
+   }
+   my $tempo = $proj_obj->search_related("logins", {
+                                                    data => {
+                                                             '>=' => $prim->ymd . " " . $prim->hms,
+                                                             '<=' => $ulti->ymd . " " . $ulti->hms,
+                                                            }
+                                                   }
+                                        );
+   my $tempo_total = DateTime::Duration->new;
+   for my $log (map {$_->tempo(inicio => $prim, fim => $ulti)} $tempo->all){
+      $tempo_total += $log;
+   }
+   return $tempo_total if $par{"return"} eq "DateTime";
+   ($h, $m, $s) = map {sprintf "%02d", $_} $tempo_total->in_units("hours", "minutes", "seconds");
+   $s = sprintf "%02d", $s % 60;
+   "$h:$m:$s"
 }
 
 sub tempo_empregado_mes {
