@@ -157,6 +157,7 @@ sub write_xls {
    $s = sprintf "%02d", $s % 60;
    my $horaf = "$h:$m:$s";
 
+   push @$data, [ ("") x $cols ];
    push @$data, [
                  ("") x ($cols - 1),
                  "Total",

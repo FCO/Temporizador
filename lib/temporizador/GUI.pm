@@ -97,6 +97,8 @@ sub show_all {
 
 sub menu {
     my $self = shift;
+    (my $base = $0) =~ s|^(.*)/.*?$|$1|;
+    $self->{conf}->config('root') ||= $base;
     my $menu = temporizador::Menu->new(
                                        proj_atual_nome   => $self->{temp}->get_projeto->nome,
                                        proj_atual_id     => $self->{temp}->get_projeto->id  ,

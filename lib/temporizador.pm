@@ -558,7 +558,8 @@ sub horarios_projeto_mes {
                                         );
    my %logs;
    for my $log ($logs->all){
-      if($log->data->day == $log->logout->day){
+      my $logout_day = $log->logout ? $log->logout->day : DateTime->now->day;
+      if($log->data->day == $logout_day){
          push @{ $logs{$log->data->day} }, $log->data->hms, ($log->logout || DateTime->now)->hms;
       } else {
          for my $day($log->data->day ... $log->logout->day){
