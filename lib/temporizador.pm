@@ -558,9 +558,10 @@ sub horarios_projeto_mes {
                                         );
    my %logs;
    for my $log ($logs->all){
-      my $logout_day = $log->logout ? $log->logout->day : DateTime->now->day;
+      my $logout_day = $log->logout ? $log->logout->day : DateTime->now->set_time_zone($self->{timezone})->day;
       if($log->data->day == $logout_day){
-         push @{ $logs{$log->data->day} }, $log->data->hms, ($log->logout || DateTime->now)->hms;
+         push @{ $logs{$log->data->day} }, $log->data->hms,
+            ($log->logout || DateTime->now->set_time_zone($self->{timezone}))->hms;
       } else {
          for my $day($log->data->day ... $log->logout->day){
             my($ini, $fim);
